@@ -133,11 +133,11 @@ de moradores e visitantes.
 
 ## 3.1 Nome provisório do projeto
 
-**Praia+**
+**GoBeach**
 
 ## 3.2 Solução proposta em alto nível
 
-O Praia+ será uma plataforma que centraliza informações relacionadas às
+O GoBeach será uma plataforma que centraliza informações relacionadas às
 praias e às atividades realizadas nelas. O usuário poderá consultar praias
 e suas condições de balneabilidade, encontrar aulas e atividades, descobrir
 eventos esportivos, como surf e vôlei, e localizar ações comunitárias, como
