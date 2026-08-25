@@ -260,26 +260,26 @@ Não fazem parte da versão inicial:
 
 ## 5. Baseline do Cronograma
 
-| ID | Atividade | Duração | Dependência | Responsável |
-|----|-----------|---------|-------------|-------------|
-| A1 | Planejamento | 1 semana | --- | Gerente do projeto |
-| A2 | Levantamento de necessidades | 1 semana | A1 | Analista |
-| A3 | Refinamento do escopo | 1 semana | A2 | Gerente do projeto |
-| A4 | Modelagem do produto | 1 semana | A3 | Analista |
-| A5 | Arquitetura de informações | 1 semana | A4 | UX/UI |
-| A6 | Wireframes e protótipo | 2 semanas | A5 | UX/UI |
-| A7 | Estrutura da aplicação | 1 semana | A4 | Desenvolvimento |
-| A8 | Usuários e conteúdo | 2 semanas | A7 | Desenvolvimento |
-| A9 | Praias e balneabilidade | 2 semanas | A8 | Desenvolvimento |
-| A10 | Atividades e eventos | 2 semanas | A8 | Desenvolvimento |
-| A11 | Busca e filtros | 1 semana | A9 e A10 | Desenvolvimento |
-| A12 | Interesse ou inscrição | 1 semana | A10 | Desenvolvimento |
-| A13 | Testes funcionais | 1 semana | A9 a A12 | QA |
-| A14 | Testes de usabilidade | 1 semana | A13 | QA |
-| A15 | Correções e homologação | 1 semana | A14 | Equipe |
-| A16 | Implantação | 1 semana | A15 | Desenvolvimento |
-| A17 | Documentação final | 1 semana | A16 | Gerente do projeto |
-| A18 | Encerramento | 1 semana | A17 | Gerente do projeto |
+| ID | Atividade | Duração | Dependência | Semana(s) ativa(s) | Responsável |
+|----|-----------|---------|-------------|-------------|-------------|
+| A1 | Planejamento | 1 semana | --- | Semana 1 | Gerente do projeto |
+| A2 | Levantamento de necessidades | 1 semana | A1 | Semana 2 | Analista |
+| A3 | Refinamento do escopo | 1 semana | A2 | Semana 3 | Gerente do projeto |
+| A4 | Modelagem do produto | 1 semana | A3 | Semana 4 | Analista |
+| A5 | Arquitetura de informações | 1 semana | A4 | Semana 5 | UX/UI |
+| A6 | Wireframes e protótipo | 2 semanas | A5 | Semanas 5 e 6 | UX/UI |
+| A7 | Estrutura da aplicação | 1 semana | A4 | Semana 5 | Desenvolvimento |
+| A8 | Usuários e conteúdo | 2 semanas | A7 | Semanas 5 e 6 | Desenvolvimento |
+| A9 | Praias e balneabilidade | 2 semanas | A8 | Semanas 7 e 8 | Desenvolvimento |
+| A10 | Atividades e eventos | 2 semanas | A8 | Semanas 7 e 8 | Desenvolvimento |
+| A11 | Busca e filtros | 1 semana | A9 e A10 | Semana 9 | Desenvolvimento |
+| A12 | Interesse ou inscrição | 1 semana | A10 | Semana 9 | Desenvolvimento |
+| A13 | Testes funcionais | 1 semana | A9 a A12 | Semana 10 | QA |
+| A14 | Testes de usabilidade | 1 semana | A13 | Semana 10 | QA |
+| A15 | Correções e homologação | 1 semana | A14 | Semana 11 | Equipe |
+| A16 | Implantação | 1 semana | A15 | Semana 12 | Desenvolvimento |
+| A17 | Documentação final | 1 semana | A16 | Semana 12 | Gerente do projeto |
+| A18 | Encerramento | 1 semana | A17 | Semana 12 | Gerente do projeto |
 
 ### 5.1 Marcos
 
