@@ -18,6 +18,8 @@ Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%
 │       ├── 01_schema.sql   Tabelas, tipos e restrições
 │       └── 02_seed.sql     Carga inicial (praias, boletins, aulas, eventos, ações)
 ├── frontend/           Interface web (React 18 + Vite + Leaflet, servida por nginx)
+│                       Testes ao lado dos arquivos (*.test.js / *.test.jsx, Vitest)
+├── .github/workflows/  CI: testes a cada push e pull request
 ├── docs/               Documentação do projeto (mini-charter, documento executivo, backlog, roadmap)
 ├── docker-compose.yml
 └── .env.example
@@ -94,7 +96,12 @@ Frontend (porta 5173, com proxy de `/api` para `localhost:3000`):
 cd frontend
 npm install
 npm run dev
+npm test             # testes unitários (Vitest + Testing Library)
 ```
+
+## Integração contínua
+
+O workflow [.github/workflows/testes.yml](.github/workflows/testes.yml) roda a cada push e pull request: testes do backend, testes do frontend e o build do frontend. Os testes da API usam o banco mockado, então não precisam de PostgreSQL.
 
 ## API
 
