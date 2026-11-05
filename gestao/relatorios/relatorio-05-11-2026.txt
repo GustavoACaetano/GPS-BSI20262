@@ -1,0 +1,23 @@
+Cards: 5/14 = 35.7%
+
+  Product Backlog             5  (35.7%)
+  Backlog                     4  (28.6%)
+  A Fazer                     0  (0.0%)
+  Em andamento                0  (0.0%)
+  Revisão de código           0  (0.0%)
+  Fase de teste               0  (0.0%)
+  Concluído 🎉                5  (35.7%)
+
+Itens de checklist: 12/33 = 36.4%
+
+--- Estimativa ---
+Projeto criado em: 15/10/2026
+Semanas trabalhadas: 2 (informado)
+Ritmo: 2.5 cards/semana trabalhada
+Restantes: 9 cards
+Faltam ~3.6 semana(s) de trabalho nesse ritmo
+Término previsto, trabalhando toda semana a partir de hoje: 30/11/2026
+
+Prazo: 10/12/2026 (5.1 semanas a partir de hoje)
+Semanas de trabalho necessárias: 3.6
+=> Dá para cumprir o prazo, desde que trabalhem nesse ritmo nas semanas necessárias.

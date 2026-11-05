@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Burn-up do projeto</title>
+<style>
+  :root {
+    color-scheme: light;
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --axis: #c3c2b7; --serie: #2a78d6; --border: rgba(11,11,11,0.10);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --axis: #383835; --serie: #3987e5; --border: rgba(255,255,255,0.10);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+    --grid: #2c2c2a; --axis: #383835; --serie: #3987e5; --border: rgba(255,255,255,0.10);
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px 16px; background: var(--page); color: var(--ink);
+         font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .card { max-width: 820px; margin: 0 auto; background: var(--surface); border: 1px solid var(--border);
+          border-radius: 12px; padding: 20px; position: relative; }
+  h1 { font-size: 18px; margin: 0 0 2px; }
+  .sub { color: var(--ink-2); margin: 0 0 14px; }
+  .legenda { display: flex; flex-wrap: wrap; gap: 16px; margin-bottom: 8px; color: var(--ink-2); font-size: 13px; }
+  .legenda span { display: inline-flex; align-items: center; gap: 6px; }
+  .legenda svg { overflow: visible; }
+  svg.chart { width: 100%; height: auto; display: block; }
+  .grid { stroke: var(--grid); stroke-width: 1; }
+  .axis { stroke: var(--axis); stroke-width: 1; }
+  .tick { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+  .serie { fill: none; stroke: var(--serie); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+  .estimada { stroke-dasharray: 6 5; }
+  .escopo { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 2 4; }
+  .hoje { stroke: var(--axis); stroke-width: 1; }
+  .prazo { stroke: var(--ink); stroke-width: 1.5; stroke-dasharray: 4 3; }
+  .ponto { fill: var(--serie); stroke: var(--surface); stroke-width: 2; }
+  .ponto.vazio { fill: var(--surface); stroke: var(--serie); }
+  .cross { stroke: var(--muted); stroke-width: 1; }
+  .lbl-pri { fill: var(--ink); font-size: 12px; font-weight: 600; }
+  .lbl-sec { fill: var(--ink-2); font-size: 12px; }
+  .lbl-mut { fill: var(--muted); font-size: 11px; }
+  #tip { position: absolute; pointer-events: none; background: var(--surface); border: 1px solid var(--border);
+         border-radius: 8px; padding: 6px 10px; font-size: 12px; box-shadow: 0 4px 12px rgba(0,0,0,.12);
+         opacity: 0; transition: opacity .1s; white-space: nowrap; }
+  #tip b { display: block; }
+  #tip span { color: var(--ink-2); }
+  details { margin-top: 14px; color: var(--ink-2); }
+  table { border-collapse: collapse; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  td, th { padding: 4px 14px 4px 0; text-align: left; border-bottom: 1px solid var(--grid); }
+  th { color: var(--ink); font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>Progresso do projeto: 5/14 cards (35.7%)</h1>
+  <p class="sub">Cards concluídos acumulados e projeção até o término. Gerado em 05/11/2026.</p>
+  <div class="legenda">
+    <span><svg width="22" height="4"><line x1="0" x2="22" y1="2" y2="2" stroke="var(--serie)" stroke-width="2"/></svg>Realizado</span>
+    <span><svg width="22" height="4"><line x1="0" x2="22" y1="2" y2="2" stroke="var(--serie)" stroke-width="2" stroke-dasharray="6 5"/></svg>Estimativa</span>
+    <span><svg width="22" height="4"><line x1="0" x2="22" y1="2" y2="2" stroke="var(--ink-2)" stroke-width="1.5" stroke-dasharray="2 4"/></svg>Total de cards</span>
+    <span><svg width="22" height="4"><line x1="0" x2="22" y1="2" y2="2" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="4 3"/></svg>Prazo</span>
+  </div>
+  <svg class="chart" viewBox="0 0 760 380" role="img" aria-label="Gráfico burn-up: 5 de 14 cards concluídos, término previsto em 30/11/2026">
+    <line class="grid" x1="44" x2="640" y1="340" y2="340"/>
+    <text class="tick" x="36" y="340" text-anchor="end" dominant-baseline="middle">0</text>
+    <line class="grid" x1="44" x2="640" y1="276.8" y2="276.8"/>
+    <text class="tick" x="36" y="276.8" text-anchor="end" dominant-baseline="middle">3</text>
+    <line class="grid" x1="44" x2="640" y1="213.6" y2="213.6"/>
+    <text class="tick" x="36" y="213.6" text-anchor="end" dominant-baseline="middle">6</text>
+    <line class="grid" x1="44" x2="640" y1="150.4" y2="150.4"/>
+    <text class="tick" x="36" y="150.4" text-anchor="end" dominant-baseline="middle">9</text>
+    <line class="grid" x1="44" x2="640" y1="87.19999999999999" y2="87.19999999999999"/>
+    <text class="tick" x="36" y="87.19999999999999" text-anchor="end" dominant-baseline="middle">12</text>
+    <line class="grid" x1="44" x2="640" y1="24" y2="24"/>
+    <text class="tick" x="36" y="24" text-anchor="end" dominant-baseline="middle">15</text>
+    <text class="tick" x="44" y="360" text-anchor="middle">15/10</text>
+    <text class="tick" x="113.53334674640176" y="360" text-anchor="middle">22/10</text>
+    <text class="tick" x="183.06669349280352" y="360" text-anchor="middle">29/10</text>
+    <text class="tick" x="252.60004023920527" y="360" text-anchor="middle">05/11</text>
+    <text class="tick" x="322.13338698560705" y="360" text-anchor="middle">12/11</text>
+    <text class="tick" x="391.6667337320088" y="360" text-anchor="middle">19/11</text>
+    <text class="tick" x="461.20008047841054" y="360" text-anchor="middle">26/11</text>
+    <text class="tick" x="530.7334272248124" y="360" text-anchor="middle">03/12</text>
+    <text class="tick" x="600.2667739712141" y="360" text-anchor="middle">10/12</text>
+    <line class="axis" x1="44" x2="640" y1="340" y2="340"/>
+    <line class="escopo" x1="44" x2="640" y1="45.06666666666666" y2="45.06666666666666"/>
+    <text class="lbl-sec" x="648" y="45.06666666666666" dominant-baseline="middle">Total: 14 cards</text>
+    <line class="hoje" x1="256.96189582289657" x2="256.96189582289657" y1="24" y2="340"/>
+    <text class="lbl-mut" x="256.96189582289657" y="16" text-anchor="middle">hoje</text>
+    <line class="prazo" x1="610.1999942515421" x2="610.1999942515421" y1="24" y2="340"/>
+    <text class="lbl-pri" x="610.1999942515421" y="16" text-anchor="middle">Prazo 10/12</text>
+    <path class="serie estimada" d="M257.0,234.7 L507.3,45.1"/>
+    <path class="serie real" d="M44.0,340.0 L109.7,340.0 L109.7,318.9 L109.7,318.9 L109.7,297.9 L109.7,297.9 L109.7,276.8 L109.8,276.8 L109.8,255.7 L109.8,255.7 L109.8,234.7 L257.0,234.7"/>
+    <circle class="ponto" cx="256.96189582289657" cy="234.66666666666669" r="4.5"/>
+    <circle class="ponto vazio" cx="507.2819441099429" cy="45.06666666666666" r="4.5"/>
+    <text class="lbl-pri" x="515.281944109943" y="61.06666666666666">Término ~30/11</text>
+    <text class="lbl-pri" x="248.96189582289657" y="224.66666666666669" text-anchor="end">5 concluídos</text>
+    <line id="cross" class="cross" y1="24" y2="340" visibility="hidden"/>
+    <circle id="crossPt" class="ponto" r="4.5" visibility="hidden"/>
+    <rect id="hit" x="44" y="24" width="596" height="316" fill="transparent"/>
+  </svg>
+  <div id="tip"></div>
+  <details>
+    <summary>Ver dados em tabela</summary>
+    <table><thead><tr><th>Data</th><th>Tipo</th><th>Cards concluídos</th></tr></thead>
+    <tbody><tr><td>15/10/2026</td><td>Realizado</td><td>0</td></tr><tr><td>21/10/2026</td><td>Realizado</td><td>5</td></tr><tr><td>05/11/2026</td><td>Realizado</td><td>5</td></tr><tr><td>30/11/2026</td><td>Estimativa</td><td>14</td></tr><tr><td>10/12/2026</td><td>Prazo</td><td>—</td></tr></tbody></table>
+  </details>
+</div>
+<script>
+(() => {
+  const D = {"real":[[1792033200000,0],[1792604631737,0],[1792604631737,1],[1792604692416,1],[1792604692416,2],[1792605062413,2],[1792605062413,3],[1792605147339,3],[1792605147339,4],[1792605238864,4],[1792605238864,5],[1793885539354,5]],"estimativa":[[1793885539354,5],[1796062819354,14]],"t0":1792033200000,"tMax":1797217199000,"yMax":15,"m":{"top":24,"right":120,"bottom":40,"left":44},"pw":596,"ph":316,"tHoje":1793885539354,"total":14};
+  const svg = document.querySelector("svg.chart"), hit = document.getElementById("hit");
+  const cross = document.getElementById("cross"), pt = document.getElementById("crossPt"), tip = document.getElementById("tip");
+  const card = document.querySelector(".card");
+  const x = t => D.m.left + ((t - D.t0) / (D.tMax - D.t0)) * D.pw;
+  const y = v => D.m.top + D.ph - (v / D.yMax) * D.ph;
+  const dia = t => new Date(t).toLocaleDateString("pt-BR");
+  function valor(t) {
+    if (t <= D.tHoje) {
+      let v = 0;
+      for (const [tt, vv] of D.real) if (tt <= t) v = vv;
+      return { v, est: false };
+    }
+    if (!D.estimativa) return null;
+    const [[a, va], [b, vb]] = D.estimativa;
+    if (t > b) return { v: D.total, est: true };
+    return { v: va + (vb - va) * (t - a) / (b - a), est: true };
+  }
+  function mover(ev) {
+    const r = svg.getBoundingClientRect();
+    const sx = (ev.clientX - r.left) * (760 / r.width);
+    const t = D.t0 + ((sx - D.m.left) / D.pw) * (D.tMax - D.t0);
+    const res = valor(t);
+    if (!res) return esconder();
+    const px = x(t), py = y(res.v);
+    for (const el of [cross, pt]) el.setAttribute("visibility", "visible");
+    cross.setAttribute("x1", px); cross.setAttribute("x2", px);
+    pt.setAttribute("cx", px); pt.setAttribute("cy", py);
+    tip.innerHTML = "<b>" + dia(t) + "</b><span>" +
+      (res.est ? "~" + res.v.toFixed(1) + " cards (estimativa)" : res.v + " cards concluídos") + "</span>";
+    const cr = card.getBoundingClientRect(), k = r.width / 760;
+    let left = r.left - cr.left + px * k + 12;
+    if (left + tip.offsetWidth > cr.width - 8) left -= tip.offsetWidth + 24;
+    tip.style.left = left + "px";
+    tip.style.top = (r.top - cr.top + py * k - 40) + "px";
+    tip.style.opacity = 1;
+  }
+  function esconder() {
+    for (const el of [cross, pt]) el.setAttribute("visibility", "hidden");
+    tip.style.opacity = 0;
+  }
+  hit.addEventListener("pointermove", mover);
+  hit.addEventListener("pointerleave", esconder);
+})();
+</script>
+</body>
+</html>
