@@ -84,6 +84,14 @@ describe('EventoCard', () => {
     expect(screen.getByText('Gratuito')).toBeInTheDocument();
   });
 
+  test('mostra o limite de vagas ou "Sem limite de vagas" (PBI-07)', () => {
+    const { unmount } = renderizar(<EventoCard evento={evento({ limiteVagas: 1500 })} />);
+    expect(screen.getByText('1.500 vagas')).toBeInTheDocument();
+    unmount();
+    renderizar(<EventoCard evento={evento({ limiteVagas: null })} />);
+    expect(screen.getByText('Sem limite de vagas')).toBeInTheDocument();
+  });
+
   test('evento pago mostra o valor da taxa', () => {
     renderizar(<EventoCard evento={evento({ gratuito: false, valorInscricao: 50 })} />);
     expect(screen.getByText(/Taxa de R\$\s50,00/)).toBeInTheDocument();

@@ -19,6 +19,10 @@ function Praia({ praia }) {
   );
 }
 
+// PBI-07: "64 vagas" ou "Sem limite de vagas". As inscrições online chegam no PBI-10.
+export const textoVagas = (evento) =>
+  evento.limiteVagas ? `${evento.limiteVagas.toLocaleString('pt-BR')} vagas` : 'Sem limite de vagas';
+
 // PBI-03
 export function AulaCard({ aula, detalhe = false }) {
   return (
@@ -44,7 +48,7 @@ export function AulaCard({ aula, detalhe = false }) {
   );
 }
 
-// PBI-04
+// PBI-04 (+ PBI-07: limite de vagas)
 export function EventoCard({ evento, detalhe = false }) {
   return (
     <article className={`card card--atividade${evento.status !== 'ATIVO' ? ' card--inativa' : ''}`}>
@@ -65,6 +69,8 @@ export function EventoCard({ evento, detalhe = false }) {
             <span className="tag tag--pago">Taxa de {formatarMoeda(evento.valorInscricao)}</span>
           )}
         </dd>
+        <dt>Vagas</dt>
+        <dd>{textoVagas(evento)}</dd>
       </dl>
       {!detalhe && (
         <Link to={`/atividades/${evento.id}`} className="botao botao--secundario">

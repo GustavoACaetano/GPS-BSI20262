@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06, PBI-08 e PBI-11)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06, PBI-07, PBI-08 e PBI-11)
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
@@ -80,6 +80,9 @@ CREATE TABLE atividade (
     data_inicio         TIMESTAMPTZ,
     gratuito            BOOLEAN,
     valor_inscricao     NUMERIC(8, 2),
+    -- PBI-07: regulamento do evento e limite de vagas (NULL = sem limite)
+    regulamento         TEXT,
+    limite_vagas        INTEGER CHECK (limite_vagas IS NULL OR limite_vagas > 0),
     -- Ações comunitárias
     objetivo_ambiental  TEXT,
     recomendacoes       TEXT[] NOT NULL DEFAULT '{}',
@@ -98,7 +101,10 @@ CREATE TABLE atividade (
     ),
     CONSTRAINT evento_campos CHECK (
         tipo <> 'EVENTO' OR (modalidade IS NOT NULL AND data_inicio IS NOT NULL
-                             AND gratuito IS NOT NULL AND local_detalhe IS NOT NULL)
+                             AND gratuito IS NOT NULL AND local_detalhe IS NOT NULL
+                             AND regulamento IS NOT NULL AND contato IS NOT NULL
+                             -- COALESCE: sem ele, FALSE OR NULL = NULL e o CHECK deixaria passar
+                             AND (gratuito OR COALESCE(valor_inscricao, 0) > 0))
     ),
     CONSTRAINT acao_campos CHECK (
         tipo <> 'ACAO_COMUNITARIA' OR (objetivo_ambiental IS NOT NULL AND data_inicio IS NOT NULL

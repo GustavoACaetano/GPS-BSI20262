@@ -1,34 +1,8 @@
 // PBI-08: validação dos campos do cadastro/edição de ações comunitárias.
 // Retorna { dados } com os valores normalizados ou { campos } com uma mensagem por campo inválido.
-import { HORA, praiaId, resultado, texto, textoObrigatorio, textoOpcional } from './validacaoComum.js';
+import { dataHoraFutura, praiaId, resultado, texto, textoObrigatorio, textoOpcional } from './validacaoComum.js';
 
-const DATA = /^\d{4}-\d{2}-\d{2}$/;
-// A Grande Vitória usa o horário de Brasília, sem horário de verão desde 2019.
-const FUSO = '-03:00';
 const MAX_RECOMENDACOES = 10;
-const MAX_ANTECEDENCIA_MS = 2 * 365 * 24 * 60 * 60 * 1000;
-
-// Rejeita datas inexistentes (ex.: 2026-02-30), que o Date "corrigiria" para outro dia.
-function dataExiste(data) {
-  if (!DATA.test(data)) return false;
-  const [ano, mes, dia] = data.split('-').map(Number);
-  const utc = new Date(Date.UTC(ano, mes - 1, dia));
-  return utc.getUTCFullYear() === ano && utc.getUTCMonth() === mes - 1 && utc.getUTCDate() === dia;
-}
-
-function dataHora(corpo, campos, agora) {
-  const data = texto(corpo.data);
-  const hora = texto(corpo.hora);
-
-  if (!dataExiste(data)) campos.data = 'Informe a data da ação.';
-  if (!HORA.test(hora)) campos.hora = 'Informe o horário de início (HH:MM).';
-  if (campos.data || campos.hora) return null;
-
-  const instante = new Date(`${data}T${hora}:00${FUSO}`);
-  if (instante <= agora) campos.data = 'A ação deve acontecer em uma data futura.';
-  else if (instante - agora > MAX_ANTECEDENCIA_MS) campos.data = 'Cadastre ações com até 2 anos de antecedência.';
-  return instante;
-}
 
 function recomendacoes(corpo, campos) {
   if (corpo.recomendacoes !== undefined && !Array.isArray(corpo.recomendacoes)) {
@@ -58,7 +32,7 @@ export function validarAcao(corpo = {}, agora = new Date()) {
     contato: textoObrigatorio(corpo, 'contato', 'Contato', 120, campos),
     recomendacoes: recomendacoes(corpo, campos),
   };
-  dados.dataInicio = dataHora(corpo, campos, agora);
+  dados.dataInicio = dataHoraFutura(corpo, campos, agora, 'a ação', 'ações');
 
   return resultado(campos, dados);
 }

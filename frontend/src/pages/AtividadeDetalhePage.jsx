@@ -11,9 +11,10 @@ const VOLTAR = {
   ACAO_COMUNITARIA: ['/acoes', 'Todas as ações'],
 };
 
-// Tipos que o organizador dono pode editar (PBI-06 e PBI-08).
+// Tipos que o organizador dono pode editar (PBI-06, PBI-07 e PBI-08).
 const EDICAO = {
   AULA: ['aulas', 'Editar esta aula'],
+  EVENTO: ['eventos', 'Editar este evento'],
   ACAO_COMUNITARIA: ['acoes', 'Editar esta ação'],
 };
 
@@ -40,6 +41,13 @@ export default function AtividadeDetalhePage() {
         <section>
           <h2>Sobre</h2>
           <p>{atividade.descricao}</p>
+        </section>
+      )}
+
+      {atividade.regulamento && (
+        <section className="painel painel--neutro">
+          <h2>Regulamento</h2>
+          <p className="texto-preformatado">{atividade.regulamento}</p>
         </section>
       )}
 

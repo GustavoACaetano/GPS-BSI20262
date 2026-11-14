@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../db.js';
 import { validarAula } from '../validacaoAula.js';
 import { validarAcao } from '../validacaoAcao.js';
+import { validarEvento } from '../validacaoEvento.js';
 import { exigirLogin } from '../autenticacao.js';
 import { mesmoSegredo } from '../seguranca.js';
 
@@ -64,6 +65,8 @@ function formatarAtividade(linha) {
       dataInicio: linha.data_inicio.toISOString(),
       gratuito: linha.gratuito,
       valorInscricao: linha.valor_inscricao,
+      regulamento: linha.regulamento ?? null,
+      limiteVagas: linha.limite_vagas ?? null,
     };
   }
 
@@ -183,6 +186,7 @@ router.get('/:id', async (req, res, next) => {
 // ---------------------------------------------------------------------------
 // Cadastro e edição pelo organizador logado (PBI-11):
 //   PBI-06 aulas  -> POST /api/atividades/aulas, PUT /api/atividades/aulas/:id
+//   PBI-07 eventos -> POST /api/atividades/eventos, PUT /api/atividades/eventos/:id
 //   PBI-08 ações  -> POST /api/atividades/acoes, PUT /api/atividades/acoes/:id
 //
 // A atividade pertence ao organizador que a cadastrou; só ele pode editá-la.
@@ -218,6 +222,17 @@ const CADASTROS = [
       'local_detalhe', 'dias_semana', 'hora_inicio', 'hora_fim'],
     valores: (d) => [d.titulo, d.descricao, d.praiaId, d.instrutor, d.contato, d.modalidade,
       d.localDetalhe, d.diasSemana, d.horaInicio, d.horaFim],
+  },
+  {
+    tipo: 'EVENTO',
+    caminho: 'eventos',
+    artigo: 'o evento',
+    naoEncontrada: 'Evento esportivo não encontrado.',
+    validar: (corpo) => validarEvento(corpo),
+    colunas: ['titulo', 'descricao', 'praia_id', 'responsavel', 'contato', 'modalidade', 'local_detalhe',
+      'data_inicio', 'gratuito', 'valor_inscricao', 'regulamento', 'limite_vagas'],
+    valores: (d) => [d.titulo, d.descricao, d.praiaId, d.responsavel, d.contato, d.modalidade, d.localDetalhe,
+      d.dataInicio, d.gratuito, d.valorInscricao, d.regulamento, d.limiteVagas],
   },
   {
     tipo: 'ACAO_COMUNITARIA',
@@ -272,7 +287,9 @@ for (const cadastro of CADASTROS) {
         return res.status(404).json({ erro: cadastro.naoEncontrada });
       }
       if (existente.rows[0].organizador_id !== req.organizador.id) {
-        return res.status(403).json({ erro: `Só o organizador que cadastrou ${cadastro.artigo} pode editá-la.` });
+        return res.status(403).json({
+          erro: `Só o organizador que cadastrou ${cadastro.artigo} pode ${cadastro.artigo.startsWith('o ') ? 'editá-lo' : 'editá-la'}.`,
+        });
       }
 
       const { dados, campos } = cadastro.validar(req.body);

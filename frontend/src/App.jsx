@@ -8,6 +8,8 @@ import AtividadeDetalhePage from './pages/AtividadeDetalhePage.jsx';
 import CadastrarAulaPage from './pages/CadastrarAulaPage.jsx';
 import EditarAulaPage from './pages/EditarAulaPage.jsx';
 import CadastrarAcaoPage from './pages/CadastrarAcaoPage.jsx';
+import CadastrarEventoPage from './pages/CadastrarEventoPage.jsx';
+import EditarEventoPage from './pages/EditarEventoPage.jsx';
 import EditarAcaoPage from './pages/EditarAcaoPage.jsx';
 import EntrarPage from './pages/EntrarPage.jsx';
 import CriarContaPage from './pages/CriarContaPage.jsx';
@@ -76,6 +78,8 @@ export default function App() {
           <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
           <Route path="/minha-area" element={<RotaProtegida><MinhaAreaPage /></RotaProtegida>} />
           <Route path="/eventos" element={<EventosPage />} />
+          <Route path="/eventos/novo" element={<RotaProtegida><CadastrarEventoPage /></RotaProtegida>} />
+          <Route path="/eventos/:id/editar" element={<RotaProtegida><EditarEventoPage /></RotaProtegida>} />
           <Route path="/acoes" element={<AcoesPage />} />
           <Route path="/acoes/nova" element={<RotaProtegida><CadastrarAcaoPage /></RotaProtegida>} />
           <Route path="/acoes/:id/editar" element={<RotaProtegida><EditarAcaoPage /></RotaProtegida>} />

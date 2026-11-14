@@ -829,3 +829,28 @@ a {
 .painel .titulo-pagina--acao h2 {
   margin: 0;
 }
+
+/* PBI-07: regulamento e opções de entrada do evento */
+.texto-preformatado {
+  white-space: pre-line;
+  margin: 0;
+}
+
+.opcoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+}
+
+.opcao {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.opcao input {
+  width: auto;
+  accent-color: var(--cor-primaria);
+}

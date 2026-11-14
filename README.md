@@ -4,7 +4,7 @@ Plataforma que centraliza informações de praias, balneabilidade, aulas, evento
 
 Projeto da disciplina de Gerência de Projetos de Software (IFES — Campus Serra), grupo **Ardísia Software**.
 
-Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-08** (cadastro de ações comunitárias) e o **PBI-11** (autenticação e perfil do organizador).
+Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias) e o **PBI-11** (autenticação e perfil do organizador).
 
 ## Estrutura do repositório
 
@@ -63,8 +63,9 @@ Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%
 
    O frontend também encaminha `/api` para o backend, então `http://localhost:8080/api/praias` funciona.
 
-   Para testar a área do organizador, use as contas de demonstração (senha **gobeach123** nas duas):
+   Para testar a área do organizador, use as contas de demonstração (senha **gobeach123** em todas):
    - **demo@gobeach.dev**: dona das aulas da carga inicial.
+   - **eventos@gobeach.dev**: dona dos eventos esportivos da carga inicial.
    - **ong@gobeach.dev**: dona das ações comunitárias da carga inicial.
 
 ### Comandos úteis
@@ -149,7 +150,7 @@ Rotas marcadas com 🔒 exigem o cabeçalho `Authorization: Bearer <token>`, com
 
 **E-mail:** no Docker, os e-mails vão para o Mailpit (http://localhost:8025). Para enviar e-mails de verdade, configure `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS` e `APP_URL` no `.env`.
 
-### Cadastro de aulas (PBI-06) e de ações comunitárias (PBI-08)
+### Cadastro de aulas (PBI-06), eventos esportivos (PBI-07) e ações comunitárias (PBI-08)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -157,18 +158,28 @@ Rotas marcadas com 🔒 exigem o cabeçalho `Authorization: Bearer <token>`, com
 | PUT | `/api/atividades/aulas/:id` 🔒 | Edita a aula. Somente o organizador que a cadastrou pode editar; os demais recebem `403` |
 | GET | `/api/atividades/minhas` 🔒 | Publicações do organizador logado, inclusive as que aguardam aprovação |
 | GET | `/api/atividades/minhas/:id` 🔒 | Uma publicação do organizador logado (usada na tela de edição) |
+| POST | `/api/atividades/eventos` 🔒 | **PBI-07.** Cadastra um evento esportivo vinculado ao organizador logado. Mesmas respostas do cadastro de aulas |
+| PUT | `/api/atividades/eventos/:id` 🔒 | **PBI-07.** Edita o evento. Somente o organizador que o cadastrou pode editar |
 | POST | `/api/atividades/acoes` 🔒 | **PBI-08.** Cadastra uma ação comunitária vinculada ao organizador logado. Mesmas respostas do cadastro de aulas |
 | PUT | `/api/atividades/acoes/:id` 🔒 | **PBI-08.** Edita a ação. Somente o organizador que a cadastrou pode editar |
 | PATCH | `/api/atividades/:id/publicacao` | Corpo `{ "publicada": true | false }`. Aprova ou oculta uma atividade. Exige o cabeçalho `X-Admin-Token` |
 
 Campos obrigatórios: `titulo`, `modalidade`, `praiaId`, `diasSemana` (lista com `Seg`, `Ter`, `Qua`, `Qui`, `Sex`, `Sáb`, `Dom`), `horaInicio` e `horaFim` (`HH:MM`, com o término depois do início), `instrutor` e `contato`. `localDetalhe` e `descricao` são opcionais.
 
+Campos do evento esportivo:
+- **Obrigatórios:** `titulo`, `modalidade`, `regulamento` (até 5000 caracteres), `praiaId`, `localDetalhe`, `data` (`AAAA-MM-DD`), `hora` (`HH:MM`), `responsavel` (o organizador do evento), `contato` e `gratuito` (`true` ou `false`).
+- **Valor da inscrição:** `valorInscricao` é obrigatório quando `gratuito` é `false`. Precisa ser maior que zero e de no máximo R$ 9.999,99.
+- **Vagas:** `limiteVagas` é um inteiro maior que zero. Vazio ou `null` significa sem limite de vagas.
+- **Opcional:** `descricao`.
+- **Data:** a data e a hora são lidas no horário de Brasília. O evento precisa ser futuro e ter no máximo 2 anos de antecedência.
+- **Banco:** regulamento, contato e valor (quando o evento é pago) também são exigidos por um `CHECK` na tabela.
+
 Campos da ação comunitária:
 - **Obrigatórios:** `titulo`, `objetivoAmbiental` (o objetivo ecológico), `praiaId`, `pontoEncontro`, `data` (`AAAA-MM-DD`), `hora` (`HH:MM`), `responsavel` (a organização responsável) e `contato`.
 - **Opcionais:** `apoioLocal` (parceiros como prefeitura, comércio ou associação de moradores), `descricao` e `recomendacoes` (lista com até 10 itens de até 120 caracteres).
 - **Data:** a data e a hora são lidas no horário de Brasília. A ação precisa ser futura e ter no máximo 2 anos de antecedência.
 
-**Publicação:** por padrão a aula ou a ação é publicada assim que é cadastrada. Com `MODERAR_CADASTROS=true` no `.env`, ela fica oculta até alguém aprová-la pelo `PATCH` usando o `ADMIN_TOKEN` configurado.
+**Publicação:** por padrão a aula, o evento ou a ação é publicado assim que é cadastrada. Com `MODERAR_CADASTROS=true` no `.env`, ela fica oculta até alguém aprová-la pelo `PATCH` usando o `ADMIN_TOKEN` configurado.
 
 ## PBIs entregues (Sprint 1)
 
@@ -187,12 +198,13 @@ A carga inicial inclui casos para demonstração: praias com boletim vencido (Me
 | PBI | Onde ver | Critérios de aceite atendidos |
 |-----|----------|-------------------------------|
 | **PBI-06** Cadastrar e Publicar Aulas Esportivas | Aba **Aulas**, botão **+ Cadastrar aula** (`/aulas/nova`, exige login) | Os campos obrigatórios são validados no navegador, que destaca cada campo e mostra a mensagem dele, e de novo na API, que devolve `400` com os erros por campo. O banco também barra aula sem campos obrigatórios ou com término antes do início (`CHECK`). A publicação é imediata ou passa por aprovação, conforme `MODERAR_CADASTROS`. Só o organizador que cadastrou a aula pode editá-la, pela **Minha área** ou pelo link "Editar esta aula". A listagem pública de aulas ganhou filtro por praia |
+| **PBI-07** Cadastrar e Publicar Eventos Esportivos | Aba **Eventos**, botão **+ Cadastrar evento** (`/eventos/novo`, exige login) | Regulamento e dados de contato são obrigatórios; o regulamento aparece na página do evento, com as quebras de linha preservadas. O organizador define o limite de vagas, que aparece no card ("64 vagas"), ou deixa o campo em branco para "Sem limite de vagas". Também se informa se o evento é gratuito ou pago; o campo de valor só aparece quando é pago. Os campos são validados no navegador, na API e no banco (`CHECK`). Vale a mesma moderação opcional das aulas. Só o organizador dono edita o evento, e a **Minha área** mostra a seção "Meus eventos esportivos" |
 | **PBI-08** Cadastrar Ações Comunitárias | Aba **Ações**, botão **+ Cadastrar ação** (`/acoes/nova`, exige login) | Objetivo ecológico obrigatório e apoio local opcional, os dois exibidos no card da ação. O organizador responsável fica registrado de duas formas: a organização informada aparece no card, e a ação fica vinculada à conta que a cadastrou, que é a única que pode editá-la. Os campos são validados no navegador e na API, com data futura no horário de Brasília. Vale a mesma moderação opcional das aulas. Na **Minha área**, as ações aparecem separadas das aulas, e as já realizadas ficam marcadas como "Realizada", sem opção de edição |
 | **PBI-11** Autenticação e Perfil do Organizador | **Área do organizador** no topo (`/entrar`, `/criar-conta`, `/minha-area`) | Login por e-mail e senha, com validação no navegador e na API e mensagem única para credenciais erradas. Cadastro de conta. Recuperação de senha funcional: o link chega por e-mail (Mailpit no Docker), vale 60 minutos e só pode ser usado uma vez; ao redefinir, todas as sessões são encerradas. Na **Minha área**, o organizador gerencia as próprias aulas (publicadas ou aguardando aprovação), edita o perfil e troca a senha. As rotas da área do organizador mandam para o login quando não há sessão e voltam à página pedida depois |
 
-> O esquema do banco mudou: há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em` e `apoio_local`. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
+> O esquema do banco mudou: há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento` e `limite_vagas`. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
 
-Ficam para as próximas sprints: cadastro de eventos (PBI-07), filtros combinados (PBI-09), formulário de inscrição (PBI-10), alteração de status (PBI-12), busca textual global (PBI-13) e feedback (PBI-14).
+Ficam para as próximas sprints: filtros combinados (PBI-09), formulário de inscrição (PBI-10), alteração de status (PBI-12), busca textual global (PBI-13) e feedback (PBI-14).
 
 ## Documentação
 

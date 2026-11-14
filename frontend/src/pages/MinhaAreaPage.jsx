@@ -7,28 +7,40 @@ import { api } from '../api.js';
 import { useDados } from '../hooks.js';
 import { useSessao } from '../sessao.jsx';
 import { formatarDataEvento } from '../formatacao.js';
+import { textoVagas } from '../components/AtividadeCards.jsx';
 
-// Seções de "Minhas publicações" por tipo (PBI-06 aulas, PBI-08 ações).
+// Seções de "Minhas publicações" por tipo (PBI-06 aulas, PBI-07 eventos, PBI-08 ações).
 const SECOES = [
   {
     tipo: 'AULA',
     titulo: 'Minhas aulas',
     caminho: 'aulas',
+    rotaNovo: '/aulas/nova',
     novo: '+ Cadastrar aula',
     vazio: 'Você ainda não cadastrou nenhuma aula.',
     resumo: (a) => `${a.modalidade} · ${a.praia.nome} · ${a.diasSemana} · ${a.horaInicio}–${a.horaFim}`,
   },
   {
+    tipo: 'EVENTO',
+    titulo: 'Meus eventos esportivos',
+    caminho: 'eventos',
+    rotaNovo: '/eventos/novo',
+    novo: '+ Cadastrar evento',
+    vazio: 'Você ainda não cadastrou nenhum evento esportivo.',
+    resumo: (e) => `${e.modalidade} · ${e.praia.nome} · ${formatarDataEvento(e.dataInicio)} · ${textoVagas(e)}`,
+  },
+  {
     tipo: 'ACAO_COMUNITARIA',
     titulo: 'Minhas ações comunitárias',
     caminho: 'acoes',
+    rotaNovo: '/acoes/nova',
     novo: '+ Cadastrar ação',
     vazio: 'Você ainda não cadastrou nenhuma ação comunitária.',
     resumo: (a) => `${a.praia.nome} · ${formatarDataEvento(a.dataInicio)} · ${a.interessados} voluntários`,
   },
 ];
 
-// Ações com data passada já aconteceram: não aparecem mais na aba Ações e não são editáveis.
+// Eventos e ações com data passada já aconteceram: saem das abas públicas e não são editáveis.
 const jaAconteceu = (atividade) => Boolean(atividade.dataInicio) && new Date(atividade.dataInicio) <= new Date();
 
 function SecaoPublicacoes({ secao, dados }) {
@@ -37,7 +49,7 @@ function SecaoPublicacoes({ secao, dados }) {
     <section className="painel painel--neutro">
       <div className="titulo-pagina--acao">
         <h2>{secao.titulo}</h2>
-        <Link to={`/${secao.caminho}/nova`} className="botao">{secao.novo}</Link>
+        <Link to={secao.rotaNovo} className="botao">{secao.novo}</Link>
       </div>
       {itens.length === 0 && <Vazio>{secao.vazio}</Vazio>}
       {itens.length > 0 && (

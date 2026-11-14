@@ -80,6 +80,20 @@ describe('api', () => {
     expect(fetch.mock.calls[1]).toEqual(['/api/atividades/minhas', { headers: { Authorization: 'Bearer tok' } }]);
   });
 
+  test('cadastrarEvento e editarEvento usam as rotas de eventos com o token', async () => {
+    const fetch = vi.fn(async () => respostaJson({}));
+    vi.stubGlobal('fetch', fetch);
+    configurarSessao({ token: 'tok' });
+
+    await api.cadastrarEvento({ titulo: 'Open' });
+    await api.editarEvento(60, { titulo: 'Open' });
+
+    expect(fetch.mock.calls.map(([url, o]) => [url, o.method, o.headers.Authorization])).toEqual([
+      ['/api/atividades/eventos', 'POST', 'Bearer tok'],
+      ['/api/atividades/eventos/60', 'PUT', 'Bearer tok'],
+    ]);
+  });
+
   test('cadastrarAcao e editarAcao usam as rotas de ações com o token', async () => {
     const fetch = vi.fn(async () => respostaJson({}));
     vi.stubGlobal('fetch', fetch);

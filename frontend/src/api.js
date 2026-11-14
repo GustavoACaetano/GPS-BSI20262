@@ -59,6 +59,9 @@ export const api = {
   // PBI-06 (exige login)
   cadastrarAula: (aula) => enviar('POST', '/atividades/aulas', aula),
   editarAula: (id, aula) => enviar('PUT', `/atividades/aulas/${id}`, aula),
+  // PBI-07 (exige login)
+  cadastrarEvento: (evento) => enviar('POST', '/atividades/eventos', evento),
+  editarEvento: (id, evento) => enviar('PUT', `/atividades/eventos/${id}`, evento),
   // PBI-08 (exige login)
   cadastrarAcao: (acao) => enviar('POST', '/atividades/acoes', acao),
   editarAcao: (id, acao) => enviar('PUT', `/atividades/acoes/${id}`, acao),

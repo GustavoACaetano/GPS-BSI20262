@@ -70,25 +70,34 @@ FROM (VALUES
 JOIN praia p ON p.nome = a.praia;
 
 -- PBI-04: eventos esportivos (inclui um adiado e um cancelado)
+-- PBI-07: com regulamento e limite de vagas (NULL = sem limite)
 INSERT INTO atividade (tipo, titulo, descricao, praia_id, responsavel, contato, modalidade,
-                       local_detalhe, data_inicio, gratuito, valor_inscricao, status)
+                       local_detalhe, data_inicio, gratuito, valor_inscricao, status,
+                       regulamento, limite_vagas)
 SELECT 'EVENTO', e.titulo, e.descricao, p.id, e.responsavel, e.contato, e.modalidade,
        e.local_detalhe, date_trunc('day', NOW()) + e.dias * INTERVAL '1 day' + INTERVAL '9 hours',
-       e.gratuito, e.valor, e.status::status_atividade
+       e.gratuito, e.valor, e.status::status_atividade, e.regulamento, e.vagas
 FROM (VALUES
     ('Circuito Capixaba de Surf - Etapa Serra', 'Etapa estadual nas categorias open e júnior.', 'Jacaraípe',
-     'Federação de Surf do ES', 'contato@fesurf.org', 'Surf', 'Pico da Pedra da Baleia', 12, FALSE, 80.00, 'ATIVO'),
+     'Federação de Surf do ES', 'contato@fesurf.org', 'Surf', 'Pico da Pedra da Baleia', 12, FALSE, 80.00, 'ATIVO',
+     E'Categorias open (18+) e júnior (até 17 anos, com autorização dos responsáveis).\nBaterias de 20 minutos, valem as 2 melhores ondas.\nUso obrigatório de lycra de identificação fornecida pela organização.', 64),
     ('Torneio de Futevôlei de Verão', 'Duplas mistas, chaves por nível.', 'Itapuã',
-     'Liga Vilavelhense de Futevôlei', '(27) 98888-0001', 'Futevôlei', 'Arena montada no posto 4', 5, FALSE, 40.00, 'ATIVO'),
+     'Liga Vilavelhense de Futevôlei', '(27) 98888-0001', 'Futevôlei', 'Arena montada no posto 4', 5, FALSE, 40.00, 'ATIVO',
+     E'Inscrição por dupla mista.\nJogos em set único de 18 pontos; final em melhor de 3.\nApresentar-se 30 minutos antes do primeiro jogo.', 32),
     ('Vôlei de Praia Open Camburi', 'Torneio aberto ao público.', 'Camburi',
-     'Associação Camburi Esportes', '(27) 98888-0002', 'Vôlei de praia', 'Quadras da Praça do Cauê', 3, TRUE, NULL, 'ATIVO'),
+     'Associação Camburi Esportes', '(27) 98888-0002', 'Vôlei de praia', 'Quadras da Praça do Cauê', 3, TRUE, NULL, 'ATIVO',
+     E'Duplas livres, sem restrição de categoria.\nSets de 21 pontos.\nChaveamento sorteado no dia, às 8h30.', NULL),
     ('Travessia a Nado Praia da Costa', 'Prova de 1,5 km em mar aberto.', 'Praia da Costa',
-     'Clube Aquático VV', 'nado@clubevv.org', 'Natação em águas abertas', 'Largada em frente ao Clube Libanês', 20, FALSE, 60.00, 'ADIADO'),
+     'Clube Aquático VV', 'nado@clubevv.org', 'Natação em águas abertas', 'Largada em frente ao Clube Libanês', 20, FALSE, 60.00, 'ADIADO',
+     E'Idade mínima de 16 anos.\nObrigatório atestado médico e touca da organização.\nTempo limite de 60 minutos.', 150),
     ('Corrida na Areia Guarapari', 'Percurso de 5 km pela orla.', 'Praia do Morro',
-     'Guarapari Run', '(27) 98888-0003', 'Corrida', 'Largada na Praça do Morro', 8, TRUE, NULL, 'CANCELADO'),
+     'Guarapari Run', '(27) 98888-0003', 'Corrida', 'Largada na Praça do Morro', 8, TRUE, NULL, 'CANCELADO',
+     E'Percurso de 5 km em areia fofa e batida.\nKit com número de peito retirado no local.', 300),
     ('Festival de Stand Up Paddle', 'Provas de velocidade e passeio.', 'Curva da Jurema',
-     'SUP Vitória', '(27) 98888-0004', 'Stand Up Paddle', 'Píer da Curva da Jurema', 15, TRUE, NULL, 'ATIVO')
-) AS e (titulo, descricao, praia, responsavel, contato, modalidade, local_detalhe, dias, gratuito, valor, status)
+     'SUP Vitória', '(27) 98888-0004', 'Stand Up Paddle', 'Píer da Curva da Jurema', 15, TRUE, NULL, 'ATIVO',
+     E'Uso obrigatório de colete salva-vidas e leash.\nProva de velocidade de 400 m e passeio livre.\nPranchas podem ser emprestadas pela organização (sujeito à disponibilidade).', 40)
+) AS e (titulo, descricao, praia, responsavel, contato, modalidade, local_detalhe, dias, gratuito, valor, status,
+        regulamento, vagas)
 JOIN praia p ON p.nome = e.praia;
 
 -- PBI-05: ações comunitárias (PBI-08: com apoio local)
@@ -128,13 +137,16 @@ FROM atividade a
 CROSS JOIN LATERAL generate_series(1, 5 + (a.id % 4) * 6) AS n
 WHERE a.tipo = 'ACAO_COMUNITARIA';
 
--- PBI-11/PBI-08: organizadores de demonstração (senha de ambos: gobeach123)
---   demo@gobeach.dev -> dono das aulas da carga inicial
---   ong@gobeach.dev  -> dono das ações comunitárias da carga inicial
+-- PBI-11/PBI-07/PBI-08: organizadores de demonstração (senha de todos: gobeach123)
+--   demo@gobeach.dev    -> dono das aulas da carga inicial
+--   eventos@gobeach.dev -> dono dos eventos esportivos da carga inicial
+--   ong@gobeach.dev     -> dono das ações comunitárias da carga inicial
 INSERT INTO organizador (nome, email, telefone, senha_hash) VALUES
     ('Escolas de Praia GoBeach (demo)', 'demo@gobeach.dev', '(27) 99999-0000',
      'scrypt$6165a94f06462b2ef50c10acf86e730d$4ce9d3815fddee63ec798be9a4b522a75ea80d9442d70d26364f000a2ad90fa709a53d38c244c1a2db43f584f11ac03cae5b2a92a9fbd0cd3c2eebc9c8573489'),
     ('Rede de ONGs da Orla (demo)', 'ong@gobeach.dev', '(27) 97777-0000',
+     'scrypt$6165a94f06462b2ef50c10acf86e730d$4ce9d3815fddee63ec798be9a4b522a75ea80d9442d70d26364f000a2ad90fa709a53d38c244c1a2db43f584f11ac03cae5b2a92a9fbd0cd3c2eebc9c8573489'),
+    ('Liga de Esportes de Praia (demo)', 'eventos@gobeach.dev', '(27) 98888-0000',
      'scrypt$6165a94f06462b2ef50c10acf86e730d$4ce9d3815fddee63ec798be9a4b522a75ea80d9442d70d26364f000a2ad90fa709a53d38c244c1a2db43f584f11ac03cae5b2a92a9fbd0cd3c2eebc9c8573489');
 
 UPDATE atividade
@@ -144,3 +156,7 @@ WHERE tipo = 'AULA';
 UPDATE atividade
 SET organizador_id = (SELECT id FROM organizador WHERE email = 'ong@gobeach.dev')
 WHERE tipo = 'ACAO_COMUNITARIA';
+
+UPDATE atividade
+SET organizador_id = (SELECT id FROM organizador WHERE email = 'eventos@gobeach.dev')
+WHERE tipo = 'EVENTO';
