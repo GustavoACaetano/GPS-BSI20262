@@ -72,26 +72,71 @@ describe('AvaliacaoGoBeach', () => {
   });
 });
 
-test('o botão do rodapé abre e fecha a avaliação, registrando a página de origem', async () => {
-  const avaliar = vi.spyOn(api, 'avaliar').mockResolvedValue({ id: 1, mensagem: 'Obrigado!' });
-  render(
-    <MemoryRouter initialEntries={['/praias/3']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <RodapeAvaliacao />
-    </MemoryRouter>,
-  );
+describe('modal do rodapé', () => {
+  const abrirRodape = () =>
+    render(
+      <MemoryRouter initialEntries={['/praias/3']} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <RodapeAvaliacao />
+      </MemoryRouter>,
+    );
 
-  const botao = screen.getByRole('button', { name: '★ Avaliar o GoBeach' });
-  expect(botao).toHaveAttribute('aria-expanded', 'false');
-  fireEvent.click(botao);
-  expect(screen.getByRole('button', { name: 'Fechar avaliação' })).toHaveAttribute('aria-expanded', 'true');
+  test('o link abre o modal, que registra a página de origem e fecha pelo X', async () => {
+    const avaliar = vi.spyOn(api, 'avaliar').mockResolvedValue({ id: 1, mensagem: 'Obrigado!' });
+    abrirRodape();
 
-  fireEvent.click(estrela(5));
-  fireEvent.click(screen.getByRole('button', { name: 'Enviar avaliação' }));
-  expect(await screen.findByText('Obrigado!')).toBeInTheDocument();
-  expect(avaliar).toHaveBeenCalledWith({ nota: 5, comentario: '', pagina: '/praias/3' });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument(); // fechado = fora da árvore acessível
+    fireEvent.click(screen.getByRole('button', { name: '★ Avaliar o GoBeach' }));
+    const modal = screen.getByRole('dialog', { name: 'Avaliar o GoBeach' });
+    expect(modal).toHaveAttribute('open');
 
-  fireEvent.click(screen.getByRole('button', { name: 'Fechar avaliação' }));
-  expect(screen.queryByText('Obrigado!')).not.toBeInTheDocument();
+    fireEvent.click(estrela(5));
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar avaliação' }));
+    expect(await screen.findByText('Obrigado!')).toBeInTheDocument();
+    expect(avaliar).toHaveBeenCalledWith({ nota: 5, comentario: '', pagina: '/praias/3' });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }));
+    expect(modal).not.toHaveAttribute('open');
+    expect(screen.queryByText('Obrigado!')).not.toBeInTheDocument();
+  });
+
+  test('clicar no fundo escurecido fecha; clicar dentro da caixa não', () => {
+    abrirRodape();
+    fireEvent.click(screen.getByRole('button', { name: '★ Avaliar o GoBeach' }));
+    const modal = screen.getByRole('dialog');
+
+    fireEvent.click(screen.getByRole('heading', { name: 'Avaliar o GoBeach' }));
+    expect(modal).toHaveAttribute('open');
+
+    fireEvent.click(modal); // o alvo é o próprio <dialog>: área do fundo
+    expect(modal).not.toHaveAttribute('open');
+  });
+
+  test('fechar com Esc (evento "close" do navegador) sincroniza o estado', () => {
+    abrirRodape();
+    fireEvent.click(screen.getByRole('button', { name: '★ Avaliar o GoBeach' }));
+    const modal = screen.getByRole('dialog');
+
+    modal.close(); // o que o navegador faz ao apertar Esc
+    expect(modal).not.toHaveAttribute('open');
+    expect(screen.queryAllByRole('radio')).toHaveLength(0);
+
+    fireEvent.click(screen.getByRole('button', { name: '★ Avaliar o GoBeach' }));
+    expect(modal).toHaveAttribute('open');
+  });
+
+  test('ao reabrir depois de avaliar, mostra que já avaliou', async () => {
+    vi.spyOn(api, 'avaliar').mockResolvedValue({ id: 1, mensagem: 'Obrigado!' });
+    abrirRodape();
+    fireEvent.click(screen.getByRole('button', { name: '★ Avaliar o GoBeach' }));
+    fireEvent.click(estrela(4));
+    fireEvent.click(screen.getByRole('button', { name: 'Enviar avaliação' }));
+    await screen.findByText('Obrigado!');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fechar' }));
+    fireEvent.click(screen.getByRole('button', { name: '★ Avaliar o GoBeach' }));
+
+    expect(screen.getByText(/Você já avaliou o GoBeach/)).toBeInTheDocument();
+  });
 });
 
 describe('convite após a inscrição', () => {
