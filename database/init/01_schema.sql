@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-13)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-14)
 
 -- PBI-13: busca textual sem diferenciar acentos (unaccent) e sugestões por semelhança (pg_trgm)
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -147,3 +147,13 @@ CREATE TABLE inscricao (
 );
 
 CREATE INDEX idx_inscricao_atividade ON inscricao (atividade_id);
+
+-- PBI-14: avaliações da plataforma (1 a 5 estrelas), anônimas, para apurar a meta de 80% de
+-- avaliação positiva (notas 4 e 5) definida no mini-charter e no plano de qualidade.
+CREATE TABLE avaliacao (
+    id          SERIAL PRIMARY KEY,
+    nota        SMALLINT NOT NULL CHECK (nota BETWEEN 1 AND 5),
+    comentario  VARCHAR(1000),           -- sugestões de melhoria (opcional)
+    pagina      VARCHAR(200),            -- de onde a pessoa avaliou (ex.: /explorar, inscricao)
+    criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);

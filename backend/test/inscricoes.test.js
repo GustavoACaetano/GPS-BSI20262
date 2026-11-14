@@ -168,11 +168,14 @@ test('lista de inscritos exige login', async () => {
 // --- Métricas e edição de vagas -------------------------------------------------
 
 test('GET /api/metricas mostra o progresso das metas do MVP', async () => {
-  mockarBanco(linhas([{ inscricoes: 87, atividades: 21 }]));
+  mockarBanco(linhas([{ inscricoes: 87, atividades: 21 }]), linhas([{ total: 0, positivas: 0, media: null }]));
 
   const { corpo: resposta } = await api.get('/api/metricas');
 
-  assert.deepEqual(resposta, { inscricoes: 87, atividades: 21, metas: { inscricoes: 100, atividades: 30 } });
+  assert.equal(resposta.inscricoes, 87);
+  assert.equal(resposta.atividades, 21);
+  assert.deepEqual(resposta.metas, { inscricoes: 100, atividades: 30 });
+  assert.equal(resposta.satisfacao.avaliacoes, 0);
 });
 
 test('editar o evento para menos vagas que inscritos devolve erro no campo', async () => {

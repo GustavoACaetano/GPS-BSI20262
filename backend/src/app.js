@@ -5,6 +5,7 @@ import praiasRouter from './routes/praias.js';
 import atividadesRouter from './routes/atividades.js';
 import authRouter from './routes/auth.js';
 import inscricoesRouter from './routes/inscricoes.js';
+import avaliacoesRouter from './routes/avaliacoes.js';
 
 export const app = express();
 
@@ -26,6 +27,7 @@ app.use('/api/praias', praiasRouter);
 app.use('/api/atividades', atividadesRouter);
 app.use('/api/auth', authRouter);
 app.use('/api', inscricoesRouter);
+app.use('/api', avaliacoesRouter);
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ erro: 'Recurso não encontrado.' });

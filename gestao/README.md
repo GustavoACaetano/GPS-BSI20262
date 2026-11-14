@@ -27,7 +27,7 @@ O relatório aparece no terminal e é salvo em `gestao/relatorios/relatorio-DD-M
 ### Opções
 
 ```bash
-node gestao/gerar-relatorio.js [quadro.json] [AAAA-MM-DD] [--semanas=N]
+node gestao/gerar-relatorio.js [quadro.json] [AAAA-MM-DD] [--semanas=N] [--api=URL]
 ```
 
 | Opção          | Efeito                                                                                          |
@@ -35,6 +35,7 @@ node gestao/gerar-relatorio.js [quadro.json] [AAAA-MM-DD] [--semanas=N]
 | `quadro.json`  | Usa outro arquivo exportado no lugar de `gestao/quadro.json`.                                    |
 | `AAAA-MM-DD`   | Prazo da entrega. O relatório informa se o prazo é viável no ritmo atual.                       |
 | `--semanas=N`  | Número de semanas efetivamente trabalhadas. Sem essa opção, contam as semanas em que algum card foi concluído. |
+| `--api=URL`    | Endereço da API do GoBeach (ex.: `http://localhost:3000`). Acrescenta a seção "Metas do MVP", lida de `/api/metricas`: inscrições (meta 100), atividades publicadas (meta 30) e satisfação (meta de 80% de notas 4 e 5, PBI-14). Se a API não responder, o relatório sai mesmo assim, com um aviso. |
 
 Exemplo, com prazo em 10/12/2026 e 2 semanas trabalhadas:
 

@@ -4,7 +4,7 @@ Plataforma que centraliza informações de praias, balneabilidade, aulas, evento
 
 Projeto da disciplina de Gerência de Projetos de Software (IFES — Campus Serra), grupo **Ardísia Software**.
 
-Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados), o **PBI-10** (inscrições), o **PBI-11** (autenticação e perfil do organizador), o **PBI-12** (adiar ou cancelar atividades) e o **PBI-13** (busca por palavra-chave).
+Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados), o **PBI-10** (inscrições), o **PBI-11** (autenticação e perfil do organizador), o **PBI-12** (adiar ou cancelar atividades), o **PBI-13** (busca por palavra-chave) e o **PBI-14** (avaliação da plataforma).
 
 ## Estrutura do repositório
 
@@ -137,13 +137,26 @@ Regras de `PATCH /api/atividades/:id/status`:
 - **Cancelamento definitivo:** a atividade cancelada não pode ser reativada nem editada, e novas inscrições são bloqueadas. Atividades que já aconteceram não mudam de status.
 - **Aviso por e-mail:** ao adiar ou cancelar, os inscritos que deixaram e-mail recebem o aviso, enviado em segundo plano. A resposta informa quantos serão avisados (`avisados`). Falhas temporárias do servidor de e-mail (respostas SMTP 4xx, quedas de conexão) são tentadas de novo até 3 vezes. Inscritos que deixaram só WhatsApp ficam com o aviso visual.
 
+### Avaliação da plataforma (PBI-14)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/avaliacoes` | `{ nota: 1..5, comentario?, pagina? }`. Registra uma avaliação anônima |
+| GET | `/api/avaliacoes` | Resumo, distribuição por nota e as 200 avaliações mais recentes, com os comentários. Exige o cabeçalho `X-Admin-Token` |
+
+- **Avaliação positiva:** notas 4 e 5. A meta é ter pelo menos 80% de avaliações positivas, como definido no mini-charter e no plano de qualidade. `/api/metricas` devolve `satisfacao: { avaliacoes, positivas, media, percentualPositivo, meta, metaAtingida }`.
+- **Anonimato:** a avaliação não guarda nome nem contato, só a nota, o comentário opcional (até 1000 caracteres), a página de origem e a data.
+- **Repetições:** sem login, não dá para impedir de verdade. Há um limite de 5 avaliações por IP a cada 15 minutos, e o navegador lembra quem já avaliou.
+- **Carga inicial:** não traz avaliações, para a meta ser apurada só com avaliações reais.
+- **Relatório:** `node gestao/gerar-relatorio.js --api=http://localhost:3000` inclui as metas do MVP no relatório da gestão. Veja [gestao/README.md](gestao/README.md).
+
 ### Inscrições (PBI-10)
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
 | POST | `/api/atividades/:id/inscricoes` | `{ nome, contato, consentimento: true }`. Registra a inscrição ou a demonstração de interesse e responde `201` com `{ inscricao, interessados, vagasRestantes }` |
 | GET | `/api/atividades/minhas/:id/inscricoes` 🔒 | Inscritos de uma atividade do organizador logado, com nome, contato e data |
-| GET | `/api/metricas` | Acompanhamento das metas do MVP: total de inscrições (meta de 100) e de atividades publicadas (meta de 30) |
+| GET | `/api/metricas` | Acompanhamento das metas do MVP: total de inscrições (meta de 100), atividades publicadas (meta de 30) e satisfação (meta de 80% de avaliações positivas, PBI-14) |
 
 **Contato:** pode ser um e-mail ou um WhatsApp com DDD. O consentimento para enviar o contato ao organizador é obrigatório, e o contato não aparece em nenhuma consulta pública.
 
@@ -260,11 +273,12 @@ A carga inicial inclui casos para demonstração: praias com boletim vencido (Me
 | **PBI-10** Demonstrar Interesse ou Inscrever-se | Página de cada aula, evento ou ação, e **Minha área → Inscritos** | Coleta nome e e-mail ou WhatsApp, com validação no navegador e na API e consentimento obrigatório para enviar o contato ao organizador. A confirmação aparece na tela, com o número de inscritos e as vagas restantes, e o contador do card é recarregado na hora. Os cards de aulas, eventos e ações mostram o contador de interessados, inscritos ou voluntários. Os eventos mostram as vagas disponíveis e "Vagas esgotadas" quando lotam, e aí o formulário some; o mesmo acontece em atividades canceladas ou já realizadas. Inscrição duplicada é recusada. O organizador dono vê a lista de inscritos, com links para e-mail ou WhatsApp e um botão para copiar os contatos. A rota `/api/metricas` acompanha a meta de 100 inscrições do MVP |
 | **PBI-12** Atualizar Status ou Cancelar Atividade | **Minha área → Status**, ou "Adiar ou cancelar" na página da atividade (`/minha-area/status/:id`) | O organizador dono altera o status para "Adiado" ou "Cancelado", com um aviso obrigatório aos participantes, ou reativa uma atividade adiada. Para cancelar, é preciso confirmar que a ação é definitiva. A notificação visual aparece nas listagens (abas, Explorar e página da praia) e na página da atividade: o selo "Adiado" ou "Cancelado" e uma faixa colorida com o aviso. Atividades canceladas não aceitam inscrições nem edição. Os inscritos com e-mail recebem o aviso, com novas tentativas em caso de falha temporária. Os eventos adiado e cancelado da carga inicial já trazem avisos |
 | **PBI-13** Pesquisa Textual por Palavra-Chave | Campo **Buscar** no topo de todas as páginas e na aba **Explorar** | A busca é parcial e não diferencia maiúsculas nem acentos. Combina com os filtros do PBI-09 e atualiza os resultados depois de uma pausa na digitação. Além das atividades, mostra as praias encontradas. Quando nada é encontrado, exibe "Nenhum resultado para '…'" com sugestões clicáveis ("Você quis dizer: Surf") e, se houver outros filtros ativos, o botão "Buscar '…' sem os outros filtros (N resultados)". Sem sugestões, dá dicas de como buscar |
+| **PBI-14** Avaliar Utilidade e Enviar Feedback | Botão **★ Avaliar o GoBeach** no rodapé de todas as páginas, e convite na confirmação de inscrição | Formulário simples de 1 a 5 estrelas, acessível pelo teclado (as setas mudam a nota), com uma descrição de cada nota ("Nada útil" a "Muito útil") e um campo opcional de sugestões. As avaliações são anônimas e ficam guardadas para apurar a meta de 80% de avaliações positivas (notas 4 e 5), que aparece em `/api/metricas` e no relatório da gestão (`--api`). A equipe lê os comentários em `GET /api/avaliacoes`. Quem já avaliou não recebe o convite de novo |
 | **PBI-11** Autenticação e Perfil do Organizador | **Área do organizador** no topo (`/entrar`, `/criar-conta`, `/minha-area`) | Login por e-mail e senha, com validação no navegador e na API e mensagem única para credenciais erradas. Cadastro de conta. Recuperação de senha funcional: o link chega por e-mail (Mailpit no Docker), vale 60 minutos e só pode ser usado uma vez; ao redefinir, todas as sessões são encerradas. Na **Minha área**, o organizador gerencia as próprias aulas (publicadas ou aguardando aprovação), edita o perfil e troca a senha. As rotas da área do organizador mandam para o login quando não há sessão e voltam à página pedida depois |
 
-> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09 e as extensões `unaccent` e `pg_trgm` do PBI-13): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento`, `limite_vagas`, `inscritos`, `aviso_status` e `status_alterado_em`. A tabela `inscricao` ganhou a coluna `contato_normalizado` e uma restrição de unicidade. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
+> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09 e as extensões `unaccent` e `pg_trgm` do PBI-13): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento`, `limite_vagas`, `inscritos`, `aviso_status` e `status_alterado_em`. A tabela `inscricao` ganhou a coluna `contato_normalizado` e uma restrição de unicidade, e há a tabela nova `avaliacao`. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
 
-Fica para a próxima sprint: feedback (PBI-14).
+Todos os 14 PBIs do Product Backlog estão implementados.
 
 ## Documentação
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Campo, ErroFormulario, useFormulario } from './Formulario.jsx';
 import { vagasRestantes } from './AtividadeCards.jsx';
+import AvaliacaoGoBeach, { jaAvaliou } from './AvaliacaoGoBeach.jsx';
 import { api } from '../api.js';
 
 // PBI-10: inscrição / demonstração de interesse em aulas, eventos e ações.
@@ -63,6 +64,7 @@ export default function FormularioInscricao({ atividade, aoInscrever }) {
   const textos = TEXTOS[atividade.tipo];
   const [confirmacao, setConfirmacao] = useState(null);
   const [jaInscrito] = useState(() => lerInscricoes()[atividade.id]);
+  const [avaliouAntes] = useState(jaAvaliou);
 
   const { valores, erros, erroGeral, enviando, atributos, enviar, setValores } = useFormulario(
     { nome: '', contato: '', consentimento: false },
@@ -86,16 +88,24 @@ export default function FormularioInscricao({ atividade, aoInscrever }) {
   if (confirmacao) {
     const { inscricao, interessados, vagasRestantes: restantes } = confirmacao;
     return (
-      <section className="painel painel--propria" role="status">
-        <h2>{textos.confirmado}</h2>
-        <p>
-          Obrigado, {inscricao.nome}! O organizador recebeu seu contato e pode falar com você sobre os próximos passos.
-        </p>
-        <p className="contador">
-          <strong>{interessados.toLocaleString('pt-BR')}</strong> {interessados === 1 ? 'pessoa inscrita' : 'pessoas inscritas'}
-          {restantes != null && ` · ${restantes === 0 ? 'vagas esgotadas' : `${restantes} ${restantes === 1 ? 'vaga restante' : 'vagas restantes'}`}`}
-        </p>
-      </section>
+      <>
+        <section className="painel painel--propria" role="status">
+          <h2>{textos.confirmado}</h2>
+          <p>
+            Obrigado, {inscricao.nome}! O organizador recebeu seu contato e pode falar com você sobre os próximos passos.
+          </p>
+          <p className="contador">
+            <strong>{interessados.toLocaleString('pt-BR')}</strong> {interessados === 1 ? 'pessoa inscrita' : 'pessoas inscritas'}
+            {restantes != null && ` · ${restantes === 0 ? 'vagas esgotadas' : `${restantes} ${restantes === 1 ? 'vaga restante' : 'vagas restantes'}`}`}
+          </p>
+        </section>
+        {/* PBI-14: convite para avaliar logo após usar a plataforma (não aparece para quem já avaliou) */}
+        {!avaliouAntes && (
+          <section className="painel painel--neutro">
+            <AvaliacaoGoBeach origem="inscricao" convite />
+          </section>
+        )}
+      </>
     );
   }
 

@@ -4,6 +4,7 @@ import { query } from '../db.js';
 import { exigirLogin } from '../autenticacao.js';
 import { limitarTentativas } from '../limitador.js';
 import { validarInscricao } from '../validacaoInscricao.js';
+import { resumirSatisfacao, SQL_SATISFACAO } from './avaliacoes.js';
 
 const router = Router();
 
@@ -128,13 +129,21 @@ router.get('/atividades/minhas/:id/inscricoes', exigirLogin, async (req, res, ne
 });
 
 // GET /api/metricas — acompanhamento das metas do MVP (100+ inscrições, 30+ atividades publicadas)
+// PBI-14: + satisfação (meta de 80% de avaliações positivas, notas 4 e 5).
 router.get('/metricas', async (_req, res, next) => {
   try {
-    const resultado = await query(
-      `SELECT (SELECT COUNT(*)::int FROM inscricao) AS inscricoes,
-              (SELECT COUNT(*)::int FROM atividade WHERE publicada) AS atividades`,
-    );
-    res.json({ ...resultado.rows[0], metas: METAS_MVP });
+    const [resultado, satisfacao] = await Promise.all([
+      query(
+        `SELECT (SELECT COUNT(*)::int FROM inscricao) AS inscricoes,
+                (SELECT COUNT(*)::int FROM atividade WHERE publicada) AS atividades`,
+      ),
+      query(SQL_SATISFACAO),
+    ]);
+    res.json({
+      ...resultado.rows[0],
+      metas: METAS_MVP,
+      satisfacao: resumirSatisfacao(satisfacao.rows[0]),
+    });
   } catch (erro) {
     next(erro);
   }

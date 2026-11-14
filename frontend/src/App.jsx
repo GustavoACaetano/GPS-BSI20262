@@ -21,6 +21,7 @@ import InscritosPage from './pages/InscritosPage.jsx';
 import AlterarStatusPage from './pages/AlterarStatusPage.jsx';
 import { RotaProtegida, useSessao } from './sessao.jsx';
 import BuscaGlobal from './components/BuscaGlobal.jsx';
+import RodapeAvaliacao from './components/RodapeAvaliacao.jsx';
 
 const ABAS = [
   { para: '/praias', rotulo: 'Praias' },
@@ -99,8 +100,10 @@ export default function App() {
       </main>
 
       <footer className="rodape">
-        <div className="container">
-          GoBeach · MVP · Ardísia Software — Dados de balneabilidade de fontes oficiais.
+        <div className="container rodape__conteudo">
+          <span>GoBeach · MVP · Ardísia Software — Dados de balneabilidade de fontes oficiais.</span>
+          {/* PBI-14 */}
+          <RodapeAvaliacao />
         </div>
       </footer>
     </>

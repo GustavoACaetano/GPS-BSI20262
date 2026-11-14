@@ -1,9 +1,11 @@
 // Gera o relatório de progresso do quadro do Trello.
 //
-// Uso: node gestao/gerar-relatorio.js [quadro.json] [AAAA-MM-DD] [--semanas=N]
+// Uso: node gestao/gerar-relatorio.js [quadro.json] [AAAA-MM-DD] [--semanas=N] [--api=URL]
 //   quadro.json   export do Trello (padrão: gestao/quadro.json)
 //   AAAA-MM-DD    prazo da entrega (opcional)
 //   --semanas=N   semanas efetivamente trabalhadas (padrão: semanas em que algum card foi concluído)
+//   --api=URL     endereço da API do GoBeach (ex.: http://localhost:3000); inclui as metas do MVP
+//                 (inscrições, atividades e satisfação, PBI-14) lidas de /api/metricas
 //
 // O resultado é exibido no terminal e salvo em gestao/relatorios/relatorio-DD-MM-AAAA.txt
 const fs = require("fs");
@@ -14,6 +16,7 @@ const args = process.argv.slice(2);
 const argQuadro = args.find(a => a.toLowerCase().endsWith(".json"));
 const argPrazo = args.find(a => /^\d{4}-\d{2}-\d{2}$/.test(a));
 const argSemanas = Number((args.find(a => a.startsWith("--semanas=")) || "").split("=")[1]) || null;
+const argApi = (args.find(a => a.startsWith("--api=")) || "").slice("--api=".length).replace(/\/+$/, "") || null;
 
 const arquivoQuadro = argQuadro ? path.resolve(argQuadro) : path.join(__dirname, "quadro.json");
 const board = JSON.parse(fs.readFileSync(arquivoQuadro, "utf-8"));
@@ -111,7 +114,34 @@ if (!feitos) {
   }
 }
 
+// ---------- Metas do MVP (opcional: --api=URL) ----------
+// Lê /api/metricas: inscrições (meta 100), atividades publicadas (meta 30) e satisfação (meta 80%, PBI-14).
+async function metasDoMvp(url) {
+  out();
+  out("--- Metas do MVP ---");
+  try {
+    const resposta = await fetch(`${url}/api/metricas`);
+    if (!resposta.ok) throw new Error(`HTTP ${resposta.status}`);
+    const m = await resposta.json();
+    const situacao = (atingida) => (atingida ? "atingida" : "pendente");
+    out(`Inscrições: ${m.inscricoes}/${m.metas.inscricoes} (${situacao(m.inscricoes >= m.metas.inscricoes)})`);
+    out(`Atividades publicadas: ${m.atividades}/${m.metas.atividades} (${situacao(m.atividades >= m.metas.atividades)})`);
+    const s = m.satisfacao;
+    if (!s || !s.avaliacoes) {
+      out(`Satisfação: nenhuma avaliação ainda (meta: ${s ? s.meta : 80}% de notas 4 e 5)`);
+    } else {
+      out(`Satisfação: ${s.percentualPositivo}% de avaliações positivas (notas 4 e 5) em ${s.avaliacoes} ` +
+          `avaliação(ões), média ${s.media} — meta ${s.meta}% (${situacao(s.metaAtingida)})`);
+    }
+  } catch (erro) {
+    out(`Não foi possível ler as métricas em ${url}/api/metricas (${erro.message}).`);
+  }
+}
+
 // ---------- Saída ----------
+(async () => {
+if (argApi) await metasDoMvp(argApi);
+
 const texto = linhas.join("\n");
 console.log(texto);
 
@@ -131,3 +161,4 @@ fs.writeFileSync(arquivoGrafico, gerarGrafico({
   titulo: `Progresso do projeto: ${feitos}/${total} cards (${pct(feitos, total)})`,
 }), "utf-8");
 console.log(`Gráfico salvo em ${path.relative(process.cwd(), arquivoGrafico)}`);
+})();
