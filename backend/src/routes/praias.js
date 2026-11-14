@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { formatarBoletim } from '../balneabilidade.js';
+import { MUNICIPIOS } from '../filtrosExplorar.js';
 
 const router = Router();
 
-const MUNICIPIOS = ['Vitória', 'Vila Velha', 'Serra', 'Guarapari'];
 
 // Último boletim válido de cada praia (com data de coleta e fonte).
 const SQL_PRAIA_COM_BOLETIM = `

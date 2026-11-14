@@ -56,6 +56,9 @@ export const api = {
   obterBalneabilidade: (id) => get(`/praias/${id}/balneabilidade`),
   listarAtividades: (tipo, parametros = {}) => get('/atividades', { tipo, ...parametros }),
   obterAtividade: (id) => get(`/atividades/${id}`),
+  // PBI-09
+  explorar: (filtros) => get('/atividades/explorar', filtros),
+  listarModalidades: () => get('/atividades/modalidades'),
   // PBI-06 (exige login)
   cadastrarAula: (aula) => enviar('POST', '/atividades/aulas', aula),
   editarAula: (id, aula) => enviar('PUT', `/atividades/aulas/${id}`, aula),

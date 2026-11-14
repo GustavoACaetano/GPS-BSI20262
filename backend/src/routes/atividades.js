@@ -3,12 +3,13 @@ import { query } from '../db.js';
 import { validarAula } from '../validacaoAula.js';
 import { validarAcao } from '../validacaoAcao.js';
 import { validarEvento } from '../validacaoEvento.js';
+import { montarFiltros, TIPOS } from '../filtrosExplorar.js';
 import { exigirLogin } from '../autenticacao.js';
 import { mesmoSegredo } from '../seguranca.js';
 
 const router = Router();
 
-export const TIPOS = ['AULA', 'EVENTO', 'ACAO_COMUNITARIA'];
+export { TIPOS };
 
 // Ordenações permitidas por tipo (PBI-03: modalidade/praia; PBI-04 e PBI-05: cronológica).
 const ORDENACOES = {
@@ -134,6 +135,43 @@ function lerId(req, res) {
   }
   return id;
 }
+
+// PBI-09: GET /api/atividades/explorar?categorias=AULA,EVENTO&praia=&municipio=&modalidade=&de=&ate=&propria=true
+// Filtros combinados; devolve a lista e a contagem por categoria (só atividades publicadas).
+router.get('/explorar', async (req, res, next) => {
+  try {
+    const { erro, filtros, parametros, tipos } = montarFiltros(req.query);
+    if (erro) return res.status(400).json({ erro });
+
+    const resultado = await query(
+      `${SQL_ATIVIDADE} WHERE ${filtros.join(' AND ')}
+       ORDER BY a.tipo, a.data_inicio NULLS LAST, a.modalidade, a.titulo`,
+      parametros,
+    );
+    const dados = resultado.rows.map(formatarAtividade);
+    const contagem = Object.fromEntries(tipos.map((t) => [t, dados.filter((a) => a.tipo === t).length]));
+    res.json({ dados, total: dados.length, contagem });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// PBI-09: GET /api/atividades/modalidades — modalidades com aulas ou eventos publicados (opções do filtro)
+router.get('/modalidades', async (_req, res, next) => {
+  try {
+    const resultado = await query(
+      // Agrupa sem diferenciar maiúsculas ("Surf" e "surf" viram uma opção só); o filtro também ignora caixa.
+      `SELECT MIN(TRIM(modalidade)) AS modalidade FROM atividade
+       WHERE publicada AND modalidade IS NOT NULL
+         AND (tipo = 'AULA' OR data_inicio >= date_trunc('day', NOW()))
+       GROUP BY LOWER(TRIM(modalidade))
+       ORDER BY 1`,
+    );
+    res.json({ dados: resultado.rows.map((r) => r.modalidade) });
+  } catch (erro) {
+    next(erro);
+  }
+});
 
 // PBI-11: GET /api/atividades/minhas — publicações do organizador logado (inclusive pendentes)
 router.get('/minhas', exigirLogin, async (req, res, next) => {

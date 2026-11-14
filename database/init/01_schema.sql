@@ -115,6 +115,8 @@ CREATE TABLE atividade (
 CREATE INDEX idx_atividade_tipo ON atividade (tipo);
 CREATE INDEX idx_atividade_praia ON atividade (praia_id);
 CREATE INDEX idx_atividade_organizador ON atividade (organizador_id);
+-- PBI-09: filtros combinados consultam só publicadas, por tipo e data
+CREATE INDEX idx_atividade_explorar ON atividade (tipo, data_inicio) WHERE publicada;
 
 -- Registros de interesse/inscrição. O formulário é escopo do PBI-10;
 -- nesta sprint a tabela alimenta o contador de voluntários do PBI-05.

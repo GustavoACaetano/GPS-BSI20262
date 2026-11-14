@@ -5,6 +5,7 @@ import AulasPage from './pages/AulasPage.jsx';
 import EventosPage from './pages/EventosPage.jsx';
 import AcoesPage from './pages/AcoesPage.jsx';
 import AtividadeDetalhePage from './pages/AtividadeDetalhePage.jsx';
+import ExplorarPage from './pages/ExplorarPage.jsx';
 import CadastrarAulaPage from './pages/CadastrarAulaPage.jsx';
 import EditarAulaPage from './pages/EditarAulaPage.jsx';
 import CadastrarAcaoPage from './pages/CadastrarAcaoPage.jsx';
@@ -20,6 +21,7 @@ import { RotaProtegida, useSessao } from './sessao.jsx';
 
 const ABAS = [
   { para: '/praias', rotulo: 'Praias' },
+  { para: '/explorar', rotulo: 'Explorar' },
   { para: '/aulas', rotulo: 'Aulas' },
   { para: '/eventos', rotulo: 'Eventos' },
   { para: '/acoes', rotulo: 'Ações' },
@@ -69,6 +71,7 @@ export default function App() {
           <Route path="/" element={<Navigate to="/praias" replace />} />
           <Route path="/praias" element={<PraiasPage />} />
           <Route path="/praias/:id" element={<PraiaDetalhePage />} />
+          <Route path="/explorar" element={<ExplorarPage />} />
           <Route path="/aulas" element={<AulasPage />} />
           <Route path="/aulas/nova" element={<RotaProtegida><CadastrarAulaPage /></RotaProtegida>} />
           <Route path="/aulas/:id/editar" element={<RotaProtegida><EditarAulaPage /></RotaProtegida>} />

@@ -45,6 +45,11 @@ export default function PraiaDetalhePage() {
 
       <PainelBalneabilidade boletim={balneabilidade.atual} />
 
+      {/* PBI-09: atalho para a busca já filtrada por esta praia */}
+      <Link to={`/explorar?praia=${praia.id}`} className="botao">
+        Explorar atividades nesta praia
+      </Link>
+
       {balneabilidade.historico.length > 1 && (
         <section>
           <h2>Boletins anteriores</h2>

@@ -43,3 +43,47 @@ export const deDataHoraLocal = (data, hora) => new Date(`${data}T${hora}:00-03:0
 
 // Hoje em Brasília, 'YYYY-MM-DD' (mínimo do campo de data).
 export const hojeLocal = () => paraDataHoraLocal(new Date().toISOString()).data;
+
+// PBI-09: períodos rápidos do filtro "Quando" (datas 'YYYY-MM-DD' no horário de Brasília).
+const UM_DIA_MS = 24 * 60 * 60 * 1000;
+
+export function somarDias(data, dias) {
+  return new Date(new Date(`${data}T12:00:00Z`).getTime() + dias * UM_DIA_MS).toISOString().slice(0, 10);
+}
+
+// 0 = domingo ... 6 = sábado
+export const diaDaSemana = (data) => new Date(`${data}T12:00:00Z`).getUTCDay();
+
+export const PERIODOS = [
+  { valor: '', rotulo: 'Qualquer data' },
+  { valor: 'hoje', rotulo: 'Hoje' },
+  { valor: 'fim-de-semana', rotulo: 'Neste fim de semana' },
+  { valor: '7dias', rotulo: 'Próximos 7 dias' },
+  { valor: '30dias', rotulo: 'Próximos 30 dias' },
+  { valor: 'personalizado', rotulo: 'Escolher datas…' },
+];
+
+// Converte o período escolhido em { de, ate }; null quando não há filtro de data.
+export function calcularPeriodo(periodo, hoje = hojeLocal(), personalizado = {}) {
+  switch (periodo) {
+    case 'hoje':
+      return { de: hoje, ate: hoje };
+    case 'fim-de-semana': {
+      // De hoje (se já for sábado/domingo) ou do próximo sábado até o domingo.
+      const dia = diaDaSemana(hoje);
+      if (dia === 0) return { de: hoje, ate: hoje };
+      const sabado = dia === 6 ? hoje : somarDias(hoje, 6 - dia);
+      return { de: sabado, ate: somarDias(sabado, 1) };
+    }
+    case '7dias':
+      return { de: hoje, ate: somarDias(hoje, 6) };
+    case '30dias':
+      return { de: hoje, ate: somarDias(hoje, 29) };
+    case 'personalizado': {
+      const { de, ate } = personalizado;
+      return de && ate && de <= ate ? { de, ate } : null;
+    }
+    default:
+      return null;
+  }
+}

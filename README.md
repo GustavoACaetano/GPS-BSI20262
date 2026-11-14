@@ -4,7 +4,7 @@ Plataforma que centraliza informações de praias, balneabilidade, aulas, evento
 
 Projeto da disciplina de Gerência de Projetos de Software (IFES — Campus Serra), grupo **Ardísia Software**.
 
-Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias) e o **PBI-11** (autenticação e perfil do organizador).
+Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados) e o **PBI-11** (autenticação e perfil do organizador).
 
 ## Estrutura do repositório
 
@@ -124,8 +124,24 @@ As consultas são públicas e só mostram atividades publicadas. As rotas de esc
 | GET | `/api/atividades?tipo=EVENTO` | Próximos eventos em ordem cronológica |
 | GET | `/api/atividades?tipo=ACAO_COMUNITARIA` | Próximas ações com contador de interessados |
 | GET | `/api/atividades/:id` | Detalhe de uma atividade |
+| GET | `/api/atividades/explorar?categorias=&praia=&municipio=&modalidade=&de=&ate=&propria=` | **PBI-09.** Filtros combinados. Devolve `{ dados, total, contagem }`, com a contagem por categoria |
+| GET | `/api/atividades/modalidades` | **PBI-09.** Modalidades disponíveis, para as opções do filtro |
 
 Todas as rotas de atividades aceitam `&praia=<id>` para filtrar por praia.
+
+### Filtros combinados (PBI-09)
+
+Todos os parâmetros de `/api/atividades/explorar` são opcionais e podem ser combinados:
+
+| Parâmetro | Efeito |
+|-----------|--------|
+| `categorias` | `AULA`, `EVENTO` e/ou `ACAO_COMUNITARIA`, separados por vírgula. Vazio busca todas |
+| `praia` / `municipio` | Restringe a uma praia ou a um município |
+| `modalidade` | Busca exata, sem diferenciar maiúsculas. Ações comunitárias não têm modalidade, então saem do resultado |
+| `de` e `ate` | Período em `AAAA-MM-DD`, no horário de Brasília, com até 1 ano. Eventos e ações entram pela data. Aulas, que são semanais, entram quando acontecem em algum dia da semana coberto pelo período |
+| `propria=true` | Só atividades em praias cujo último boletim é "Própria" e não está pendente de atualização |
+
+Como nas abas, só aparecem atividades publicadas, e eventos e ações passados ficam de fora.
 
 ### Autenticação e perfil do organizador (PBI-11)
 
@@ -200,11 +216,12 @@ A carga inicial inclui casos para demonstração: praias com boletim vencido (Me
 | **PBI-06** Cadastrar e Publicar Aulas Esportivas | Aba **Aulas**, botão **+ Cadastrar aula** (`/aulas/nova`, exige login) | Os campos obrigatórios são validados no navegador, que destaca cada campo e mostra a mensagem dele, e de novo na API, que devolve `400` com os erros por campo. O banco também barra aula sem campos obrigatórios ou com término antes do início (`CHECK`). A publicação é imediata ou passa por aprovação, conforme `MODERAR_CADASTROS`. Só o organizador que cadastrou a aula pode editá-la, pela **Minha área** ou pelo link "Editar esta aula". A listagem pública de aulas ganhou filtro por praia |
 | **PBI-07** Cadastrar e Publicar Eventos Esportivos | Aba **Eventos**, botão **+ Cadastrar evento** (`/eventos/novo`, exige login) | Regulamento e dados de contato são obrigatórios; o regulamento aparece na página do evento, com as quebras de linha preservadas. O organizador define o limite de vagas, que aparece no card ("64 vagas"), ou deixa o campo em branco para "Sem limite de vagas". Também se informa se o evento é gratuito ou pago; o campo de valor só aparece quando é pago. Os campos são validados no navegador, na API e no banco (`CHECK`). Vale a mesma moderação opcional das aulas. Só o organizador dono edita o evento, e a **Minha área** mostra a seção "Meus eventos esportivos" |
 | **PBI-08** Cadastrar Ações Comunitárias | Aba **Ações**, botão **+ Cadastrar ação** (`/acoes/nova`, exige login) | Objetivo ecológico obrigatório e apoio local opcional, os dois exibidos no card da ação. O organizador responsável fica registrado de duas formas: a organização informada aparece no card, e a ação fica vinculada à conta que a cadastrou, que é a única que pode editá-la. Os campos são validados no navegador e na API, com data futura no horário de Brasília. Vale a mesma moderação opcional das aulas. Na **Minha área**, as ações aparecem separadas das aulas, e as já realizadas ficam marcadas como "Realizada", sem opção de edição |
+| **PBI-09** Filtrar Conteúdo por Categoria e Praia | Aba **Explorar** (`/explorar`) e botão "Explorar atividades nesta praia" na página de cada praia | Filtros combinados de categoria (uma ou várias), município, praia, modalidade, período ("Hoje", "Neste fim de semana", "Próximos 7/30 dias" ou datas escolhidas) e "só praias próprias para banho". A lista se atualiza a cada mudança, sem botão de buscar, e mostra o número de resultados; os resultados anteriores continuam visíveis enquanto a nova busca carrega. Os resultados vêm agrupados por categoria, com a contagem de cada uma. Ao escolher uma praia, aparece a balneabilidade dela. Os filtros ficam na URL, então o link pode ser compartilhado e o "voltar" do navegador funciona. Há um botão "Limpar filtros", e uma mensagem com esse mesmo botão quando nada é encontrado. Com o banco local, a busca responde em cerca de 50 ms |
 | **PBI-11** Autenticação e Perfil do Organizador | **Área do organizador** no topo (`/entrar`, `/criar-conta`, `/minha-area`) | Login por e-mail e senha, com validação no navegador e na API e mensagem única para credenciais erradas. Cadastro de conta. Recuperação de senha funcional: o link chega por e-mail (Mailpit no Docker), vale 60 minutos e só pode ser usado uma vez; ao redefinir, todas as sessões são encerradas. Na **Minha área**, o organizador gerencia as próprias aulas (publicadas ou aguardando aprovação), edita o perfil e troca a senha. As rotas da área do organizador mandam para o login quando não há sessão e voltam à página pedida depois |
 
-> O esquema do banco mudou: há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento` e `limite_vagas`. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
+> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento` e `limite_vagas`. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
 
-Ficam para as próximas sprints: filtros combinados (PBI-09), formulário de inscrição (PBI-10), alteração de status (PBI-12), busca textual global (PBI-13) e feedback (PBI-14).
+Ficam para as próximas sprints: formulário de inscrição (PBI-10), alteração de status (PBI-12), busca textual global (PBI-13) e feedback (PBI-14).
 
 ## Documentação
 
