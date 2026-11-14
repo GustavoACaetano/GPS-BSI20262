@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06)
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
@@ -54,11 +54,18 @@ CREATE TABLE atividade (
     -- Ações comunitárias
     objetivo_ambiental  TEXT,
     recomendacoes       TEXT[] NOT NULL DEFAULT '{}',
+    -- PBI-06: publicação imediata ou sob aprovação (só publicadas aparecem nas consultas)
+    publicada           BOOLEAN NOT NULL DEFAULT TRUE,
+    -- PBI-06: hash SHA-256 do código de edição entregue a quem cadastrou
+    -- (controle provisório até a autenticação do PBI-11)
+    token_edicao_hash   CHAR(64),
     criado_em           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    atualizado_em       TIMESTAMPTZ,
 
     CONSTRAINT aula_campos CHECK (
         tipo <> 'AULA' OR (modalidade IS NOT NULL AND dias_semana IS NOT NULL
-                           AND hora_inicio IS NOT NULL AND hora_fim IS NOT NULL)
+                           AND hora_inicio IS NOT NULL AND hora_fim IS NOT NULL
+                           AND hora_fim > hora_inicio)
     ),
     CONSTRAINT evento_campos CHECK (
         tipo <> 'EVENTO' OR (modalidade IS NOT NULL AND data_inicio IS NOT NULL

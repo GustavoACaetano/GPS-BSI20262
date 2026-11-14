@@ -10,11 +10,20 @@ export async function iniciarServidor() {
   });
   const { port } = servidor.address();
 
+  const requisitar = async (metodo, caminho, corpo, cabecalhos = {}) => {
+    const resposta = await fetch(`http://127.0.0.1:${port}${caminho}`, {
+      method: metodo,
+      headers: corpo === undefined ? cabecalhos : { 'Content-Type': 'application/json', ...cabecalhos },
+      body: corpo === undefined ? undefined : typeof corpo === 'string' ? corpo : JSON.stringify(corpo),
+    });
+    return { status: resposta.status, corpo: await resposta.json() };
+  };
+
   return {
-    get: async (caminho) => {
-      const resposta = await fetch(`http://127.0.0.1:${port}${caminho}`);
-      return { status: resposta.status, corpo: await resposta.json() };
-    },
+    get: (caminho) => requisitar('GET', caminho),
+    post: (caminho, corpo, cabecalhos) => requisitar('POST', caminho, corpo, cabecalhos),
+    put: (caminho, corpo, cabecalhos) => requisitar('PUT', caminho, corpo, cabecalhos),
+    patch: (caminho, corpo, cabecalhos) => requisitar('PATCH', caminho, corpo, cabecalhos),
     fechar: () => new Promise((resolve) => servidor.close(resolve)),
   };
 }

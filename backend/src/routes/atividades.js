@@ -1,5 +1,7 @@
+import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import { query } from '../db.js';
+import { validarAula } from '../validacaoAula.js';
 
 const router = Router();
 
@@ -89,7 +91,7 @@ router.get('/', async (req, res, next) => {
     }
 
     const parametros = [tipo];
-    const filtros = ['a.tipo = $1'];
+    const filtros = ['a.tipo = $1', 'a.publicada'];
 
     // Eventos e ações: apenas os próximos (a partir de hoje).
     if (tipo !== 'AULA') {
@@ -114,19 +116,169 @@ router.get('/', async (req, res, next) => {
   }
 });
 
-// GET /api/atividades/:id
+function lerId(req, res) {
+  const id = Number.parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    res.status(400).json({ erro: 'Identificador de atividade inválido.' });
+    return null;
+  }
+  return id;
+}
+
+// GET /api/atividades/:id (somente atividades publicadas)
 router.get('/:id', async (req, res, next) => {
   try {
-    const id = Number.parseInt(req.params.id, 10);
-    if (!Number.isInteger(id) || id <= 0) {
-      return res.status(400).json({ erro: 'Identificador de atividade inválido.' });
-    }
+    const id = lerId(req, res);
+    if (id === null) return;
 
-    const resultado = await query(`${SQL_ATIVIDADE} WHERE a.id = $1`, [id]);
+    const resultado = await query(`${SQL_ATIVIDADE} WHERE a.id = $1 AND a.publicada`, [id]);
     if (resultado.rowCount === 0) {
       return res.status(404).json({ erro: 'Atividade não encontrada.' });
     }
     res.json(formatarAtividade(resultado.rows[0]));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// PBI-06: Cadastrar e Publicar Aulas Esportivas
+//
+// Até a autenticação do PBI-11, quem cadastra recebe um código de edição secreto
+// (só o hash fica no banco) e precisa dele para alterar a aula depois.
+// Com MODERAR_CADASTROS=true, novas aulas ficam ocultas até aprovação por quem
+// tem o ADMIN_TOKEN; caso contrário, são publicadas imediatamente.
+// ---------------------------------------------------------------------------
+
+const hashToken = (token) => createHash('sha256').update(token).digest('hex');
+
+function mesmoSegredo(recebido, esperado) {
+  if (typeof recebido !== 'string' || !recebido || !esperado) return false;
+  const a = Buffer.from(recebido);
+  const b = Buffer.from(esperado);
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+const moderacaoAtiva = () => process.env.MODERAR_CADASTROS === 'true';
+
+const PRAIA_INEXISTENTE = '23503'; // foreign_key_violation
+
+function responderInvalido(res, campos) {
+  res.status(400).json({ erro: 'Revise os campos destacados.', campos });
+}
+
+const CAMPOS_AULA = `titulo, descricao, praia_id, responsavel, contato, modalidade,
+                     local_detalhe, dias_semana, hora_inicio, hora_fim`;
+
+const valoresAula = (d) => [
+  d.titulo, d.descricao, d.praiaId, d.instrutor, d.contato, d.modalidade,
+  d.localDetalhe, d.diasSemana, d.horaInicio, d.horaFim,
+];
+
+// Junta a linha gravada com a praia para responder no mesmo formato das consultas.
+const SQL_COM_PRAIA = (cte) => `
+  WITH gravada AS (${cte})
+  SELECT g.*, p.nome AS praia_nome, p.municipio AS praia_municipio,
+         (SELECT COUNT(*)::int FROM inscricao i WHERE i.atividade_id = g.id) AS interessados
+  FROM gravada g
+  JOIN praia p ON p.id = g.praia_id
+`;
+
+// POST /api/atividades/aulas
+router.post('/aulas', async (req, res, next) => {
+  try {
+    const { dados, campos } = validarAula(req.body);
+    if (campos) return responderInvalido(res, campos);
+
+    const codigoEdicao = randomBytes(16).toString('hex');
+    const publicada = !moderacaoAtiva();
+
+    const resultado = await query(
+      SQL_COM_PRAIA(`
+        INSERT INTO atividade (tipo, ${CAMPOS_AULA}, publicada, token_edicao_hash)
+        VALUES ('AULA', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+        RETURNING *
+      `),
+      [...valoresAula(dados), publicada, hashToken(codigoEdicao)],
+    );
+
+    res.status(201).json({
+      aula: formatarAtividade(resultado.rows[0]),
+      publicada,
+      codigoEdicao,
+    });
+  } catch (erro) {
+    if (erro.code === PRAIA_INEXISTENTE) {
+      return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
+    }
+    next(erro);
+  }
+});
+
+// PUT /api/atividades/aulas/:id  (cabeçalho X-Codigo-Edicao)
+router.put('/aulas/:id', async (req, res, next) => {
+  try {
+    const id = lerId(req, res);
+    if (id === null) return;
+
+    const existente = await query(
+      'SELECT tipo, token_edicao_hash FROM atividade WHERE id = $1',
+      [id],
+    );
+    if (existente.rowCount === 0 || existente.rows[0].tipo !== 'AULA') {
+      return res.status(404).json({ erro: 'Aula não encontrada.' });
+    }
+    const codigo = req.get('X-Codigo-Edicao');
+    if (!mesmoSegredo(codigo && hashToken(codigo), existente.rows[0].token_edicao_hash)) {
+      return res.status(403).json({ erro: 'Código de edição inválido.' });
+    }
+
+    const { dados, campos } = validarAula(req.body);
+    if (campos) return responderInvalido(res, campos);
+
+    const resultado = await query(
+      SQL_COM_PRAIA(`
+        UPDATE atividade
+        SET (${CAMPOS_AULA}, atualizado_em) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+        WHERE id = $11
+        RETURNING *
+      `),
+      [...valoresAula(dados), id],
+    );
+
+    res.json({ aula: formatarAtividade(resultado.rows[0]) });
+  } catch (erro) {
+    if (erro.code === PRAIA_INEXISTENTE) {
+      return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
+    }
+    next(erro);
+  }
+});
+
+// PATCH /api/atividades/:id/publicacao  { publicada: true|false }  (cabeçalho X-Admin-Token)
+router.patch('/:id/publicacao', async (req, res, next) => {
+  try {
+    const id = lerId(req, res);
+    if (id === null) return;
+
+    if (!process.env.ADMIN_TOKEN) {
+      return res.status(403).json({ erro: 'Moderação não configurada no servidor.' });
+    }
+    if (!mesmoSegredo(req.get('X-Admin-Token'), process.env.ADMIN_TOKEN)) {
+      return res.status(403).json({ erro: 'Token de administração inválido.' });
+    }
+    if (typeof req.body?.publicada !== 'boolean') {
+      return res.status(400).json({ erro: 'Informe "publicada" como true ou false.' });
+    }
+
+    const resultado = await query(
+      'UPDATE atividade SET publicada = $1 WHERE id = $2 RETURNING id, publicada',
+      [req.body.publicada, id],
+    );
+    if (resultado.rowCount === 0) {
+      return res.status(404).json({ erro: 'Atividade não encontrada.' });
+    }
+    res.json(resultado.rows[0]);
   } catch (erro) {
     next(erro);
   }

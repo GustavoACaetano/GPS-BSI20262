@@ -24,6 +24,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-gobeach}:${POSTGRES_PASSWORD:-gobeach}@db:5432/${POSTGRES_DB:-gobeach}
       PORT: 3000
+      MODERAR_CADASTROS: ${MODERAR_CADASTROS:-false}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:

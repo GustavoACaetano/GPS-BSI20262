@@ -49,6 +49,44 @@ describe('api', () => {
     await expect(api.obterPraia(99)).rejects.toThrow('Praia não encontrada.');
   });
 
+  test('cadastrarAula envia POST com o corpo em JSON', async () => {
+    const fetch = vi.fn(async () => respostaJson({ codigoEdicao: 'abc' }, 201));
+    vi.stubGlobal('fetch', fetch);
+
+    await api.cadastrarAula({ titulo: 'Surf' });
+
+    const [url, opcoes] = fetch.mock.calls[0];
+    expect(url).toBe('/api/atividades/aulas');
+    expect(opcoes.method).toBe('POST');
+    expect(opcoes.headers['Content-Type']).toBe('application/json');
+    expect(JSON.parse(opcoes.body)).toEqual({ titulo: 'Surf' });
+  });
+
+  test('editarAula envia PUT com o código de edição no cabeçalho', async () => {
+    const fetch = vi.fn(async () => respostaJson({ aula: {} }));
+    vi.stubGlobal('fetch', fetch);
+
+    await api.editarAula(20, { titulo: 'Surf' }, 'segredo');
+
+    const [url, opcoes] = fetch.mock.calls[0];
+    expect(url).toBe('/api/atividades/aulas/20');
+    expect(opcoes.method).toBe('PUT');
+    expect(opcoes.headers['X-Codigo-Edicao']).toBe('segredo');
+  });
+
+  test('erros de validação trazem os campos inválidos', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => respostaJson({ erro: 'Revise os campos destacados.', campos: { titulo: 'Obrigatório' } }, 400)),
+    );
+
+    await expect(api.cadastrarAula({})).rejects.toMatchObject({
+      message: 'Revise os campos destacados.',
+      status: 400,
+      campos: { titulo: 'Obrigatório' },
+    });
+  });
+
   test('lança mensagem genérica quando a resposta não é JSON', async () => {
     vi.stubGlobal(
       'fetch',

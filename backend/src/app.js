@@ -26,6 +26,9 @@ app.use('/api', (_req, res) => {
 });
 
 app.use((erro, _req, res, _next) => {
+  if (erro.type === 'entity.parse.failed') {
+    return res.status(400).json({ erro: 'Corpo da requisição não é um JSON válido.' });
+  }
   console.error(erro);
   res.status(500).json({ erro: 'Erro interno do servidor.' });
 });

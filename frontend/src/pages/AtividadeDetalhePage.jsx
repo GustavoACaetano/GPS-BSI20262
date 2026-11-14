@@ -41,6 +41,11 @@ export default function AtividadeDetalhePage() {
           {atividade.responsavel}
           {atividade.contato && <> · {atividade.contato}</>}
         </p>
+        {atividade.tipo === 'AULA' && (
+          <Link to={`/aulas/${atividade.id}/editar`} className="link-editar">
+            É o instrutor? Editar esta aula
+          </Link>
+        )}
       </section>
 
       <section className="painel painel--neutro">

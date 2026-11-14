@@ -5,6 +5,8 @@ import AulasPage from './pages/AulasPage.jsx';
 import EventosPage from './pages/EventosPage.jsx';
 import AcoesPage from './pages/AcoesPage.jsx';
 import AtividadeDetalhePage from './pages/AtividadeDetalhePage.jsx';
+import CadastrarAulaPage from './pages/CadastrarAulaPage.jsx';
+import EditarAulaPage from './pages/EditarAulaPage.jsx';
 
 const ABAS = [
   { para: '/praias', rotulo: 'Praias' },
@@ -44,6 +46,8 @@ export default function App() {
           <Route path="/praias" element={<PraiasPage />} />
           <Route path="/praias/:id" element={<PraiaDetalhePage />} />
           <Route path="/aulas" element={<AulasPage />} />
+          <Route path="/aulas/nova" element={<CadastrarAulaPage />} />
+          <Route path="/aulas/:id/editar" element={<EditarAulaPage />} />
           <Route path="/eventos" element={<EventosPage />} />
           <Route path="/acoes" element={<AcoesPage />} />
           <Route path="/atividades/:id" element={<AtividadeDetalhePage />} />
