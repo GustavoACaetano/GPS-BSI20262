@@ -53,6 +53,11 @@ describe('AulaCard', () => {
     );
   });
 
+  test('mostra o contador de interessados (PBI-10)', () => {
+    renderizar(<AulaCard aula={aula({ interessados: 6 })} />);
+    expect(screen.getByText('6').closest('p')).toHaveTextContent('6 interessados');
+  });
+
   test('na página de detalhe não repete o link', () => {
     renderizar(<AulaCard aula={aula()} detalhe />);
     expect(screen.queryByText('Ver Detalhes e Inscrição')).not.toBeInTheDocument();
@@ -84,12 +89,19 @@ describe('EventoCard', () => {
     expect(screen.getByText('Gratuito')).toBeInTheDocument();
   });
 
-  test('mostra o limite de vagas ou "Sem limite de vagas" (PBI-07)', () => {
-    const { unmount } = renderizar(<EventoCard evento={evento({ limiteVagas: 1500 })} />);
-    expect(screen.getByText('1.500 vagas')).toBeInTheDocument();
+  test('mostra as vagas disponíveis considerando os inscritos (PBI-07 + PBI-10)', () => {
+    const { unmount } = renderizar(<EventoCard evento={evento({ limiteVagas: 1500, interessados: 20 })} />);
+    expect(screen.getByText('1.480 de 1.500 vagas disponíveis')).toBeInTheDocument();
+    expect(screen.getByText('20').closest('p')).toHaveTextContent('20 inscritos');
     unmount();
-    renderizar(<EventoCard evento={evento({ limiteVagas: null })} />);
+    renderizar(<EventoCard evento={evento({ limiteVagas: null, interessados: 1 })} />);
     expect(screen.getByText('Sem limite de vagas')).toBeInTheDocument();
+    expect(screen.getByText('1').closest('p')).toHaveTextContent('1 inscrito');
+  });
+
+  test('evento lotado mostra "Vagas esgotadas" em destaque', () => {
+    renderizar(<EventoCard evento={evento({ limiteVagas: 32, interessados: 32 })} />);
+    expect(screen.getByText('Vagas esgotadas')).toHaveClass('esgotado');
   });
 
   test('evento pago mostra o valor da taxa', () => {

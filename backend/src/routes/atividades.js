@@ -26,7 +26,7 @@ const ORDENACOES = {
 
 const SQL_ATIVIDADE = `
   SELECT a.*, p.nome AS praia_nome, p.municipio AS praia_municipio,
-         (SELECT COUNT(*)::int FROM inscricao i WHERE i.atividade_id = a.id) AS interessados
+         a.inscritos AS interessados
   FROM atividade a
   JOIN praia p ON p.id = a.praia_id
 `;
@@ -244,7 +244,7 @@ function responderInvalido(res, campos) {
 const SQL_COM_PRAIA = (cte) => `
   WITH gravada AS (${cte})
   SELECT g.*, p.nome AS praia_nome, p.municipio AS praia_municipio,
-         (SELECT COUNT(*)::int FROM inscricao i WHERE i.atividade_id = g.id) AS interessados
+         g.inscritos AS interessados
   FROM gravada g
   JOIN praia p ON p.id = g.praia_id
 `;
@@ -347,6 +347,12 @@ for (const cadastro of CADASTROS) {
     } catch (erro) {
       if (erro.code === PRAIA_INEXISTENTE) {
         return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
+      }
+      // PBI-10: o limite de vagas não pode ficar abaixo do número de inscritos.
+      if (erro.code === '23514' && erro.constraint === 'inscritos_dentro_do_limite') {
+        return responderInvalido(res, {
+          limiteVagas: 'Já há mais inscritos do que esse limite. Informe um número maior ou deixe sem limite.',
+        });
       }
       next(erro);
     }

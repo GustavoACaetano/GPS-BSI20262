@@ -17,6 +17,7 @@ import CriarContaPage from './pages/CriarContaPage.jsx';
 import RecuperarSenhaPage from './pages/RecuperarSenhaPage.jsx';
 import RedefinirSenhaPage from './pages/RedefinirSenhaPage.jsx';
 import MinhaAreaPage from './pages/MinhaAreaPage.jsx';
+import InscritosPage from './pages/InscritosPage.jsx';
 import { RotaProtegida, useSessao } from './sessao.jsx';
 
 const ABAS = [
@@ -80,6 +81,7 @@ export default function App() {
           <Route path="/recuperar-senha" element={<RecuperarSenhaPage />} />
           <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
           <Route path="/minha-area" element={<RotaProtegida><MinhaAreaPage /></RotaProtegida>} />
+          <Route path="/minha-area/inscritos/:id" element={<RotaProtegida><InscritosPage /></RotaProtegida>} />
           <Route path="/eventos" element={<EventosPage />} />
           <Route path="/eventos/novo" element={<RotaProtegida><CadastrarEventoPage /></RotaProtegida>} />
           <Route path="/eventos/:id/editar" element={<RotaProtegida><EditarEventoPage /></RotaProtegida>} />

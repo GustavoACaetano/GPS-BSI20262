@@ -4,7 +4,7 @@ Plataforma que centraliza informações de praias, balneabilidade, aulas, evento
 
 Projeto da disciplina de Gerência de Projetos de Software (IFES — Campus Serra), grupo **Ardísia Software**.
 
-Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados) e o **PBI-11** (autenticação e perfil do organizador).
+Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados), o **PBI-10** (inscrições) e o **PBI-11** (autenticação e perfil do organizador).
 
 ## Estrutura do repositório
 
@@ -112,7 +112,7 @@ O workflow [.github/workflows/testes.yml](.github/workflows/testes.yml) roda a c
 
 ## API
 
-As consultas são públicas e só mostram atividades publicadas. As rotas de escrita exigem login de organizador (PBI-11). A exceção é a moderação, que usa um token de administração.
+As consultas são públicas e só mostram atividades publicadas. As rotas de escrita exigem login de organizador (PBI-11), com duas exceções: a inscrição em atividades (PBI-10), que é pública, e a moderação, que usa um token de administração.
 
 | Método | Rota | Descrição |
 |--------|------|-----------|
@@ -128,6 +128,26 @@ As consultas são públicas e só mostram atividades publicadas. As rotas de esc
 | GET | `/api/atividades/modalidades` | **PBI-09.** Modalidades disponíveis, para as opções do filtro |
 
 Todas as rotas de atividades aceitam `&praia=<id>` para filtrar por praia.
+
+### Inscrições (PBI-10)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/api/atividades/:id/inscricoes` | `{ nome, contato, consentimento: true }`. Registra a inscrição ou a demonstração de interesse e responde `201` com `{ inscricao, interessados, vagasRestantes }` |
+| GET | `/api/atividades/minhas/:id/inscricoes` 🔒 | Inscritos de uma atividade do organizador logado, com nome, contato e data |
+| GET | `/api/metricas` | Acompanhamento das metas do MVP: total de inscrições (meta de 100) e de atividades publicadas (meta de 30) |
+
+**Contato:** pode ser um e-mail ou um WhatsApp com DDD. O consentimento para enviar o contato ao organizador é obrigatório, e o contato não aparece em nenhuma consulta pública.
+
+**Quando a inscrição é recusada (`409`):** o campo `motivo` diz o porquê:
+- `DUPLICADA`: o contato já está inscrito nessa atividade. O mesmo telefone escrito de outro jeito, ou o mesmo e-mail com outras maiúsculas, conta como o mesmo contato.
+- `ESGOTADA`: as vagas acabaram.
+- `CANCELADA`: a atividade foi cancelada.
+- `ENCERRADA`: o evento ou a ação já aconteceu.
+
+**Vagas:** a vaga é ocupada e a inscrição é gravada num único comando SQL, condicionado a `inscritos < limite_vagas`. Inscrições simultâneas não estouram o limite: num teste com 25 pedidos ao mesmo tempo e 2 vagas restantes, entraram exatamente 2. O banco reforça a regra com um `CHECK`, que também impede reduzir o limite de vagas para menos que o número de inscritos.
+
+**Limite por IP:** no máximo 20 pedidos de inscrição a cada 15 minutos.
 
 ### Filtros combinados (PBI-09)
 
@@ -217,11 +237,12 @@ A carga inicial inclui casos para demonstração: praias com boletim vencido (Me
 | **PBI-07** Cadastrar e Publicar Eventos Esportivos | Aba **Eventos**, botão **+ Cadastrar evento** (`/eventos/novo`, exige login) | Regulamento e dados de contato são obrigatórios; o regulamento aparece na página do evento, com as quebras de linha preservadas. O organizador define o limite de vagas, que aparece no card ("64 vagas"), ou deixa o campo em branco para "Sem limite de vagas". Também se informa se o evento é gratuito ou pago; o campo de valor só aparece quando é pago. Os campos são validados no navegador, na API e no banco (`CHECK`). Vale a mesma moderação opcional das aulas. Só o organizador dono edita o evento, e a **Minha área** mostra a seção "Meus eventos esportivos" |
 | **PBI-08** Cadastrar Ações Comunitárias | Aba **Ações**, botão **+ Cadastrar ação** (`/acoes/nova`, exige login) | Objetivo ecológico obrigatório e apoio local opcional, os dois exibidos no card da ação. O organizador responsável fica registrado de duas formas: a organização informada aparece no card, e a ação fica vinculada à conta que a cadastrou, que é a única que pode editá-la. Os campos são validados no navegador e na API, com data futura no horário de Brasília. Vale a mesma moderação opcional das aulas. Na **Minha área**, as ações aparecem separadas das aulas, e as já realizadas ficam marcadas como "Realizada", sem opção de edição |
 | **PBI-09** Filtrar Conteúdo por Categoria e Praia | Aba **Explorar** (`/explorar`) e botão "Explorar atividades nesta praia" na página de cada praia | Filtros combinados de categoria (uma ou várias), município, praia, modalidade, período ("Hoje", "Neste fim de semana", "Próximos 7/30 dias" ou datas escolhidas) e "só praias próprias para banho". A lista se atualiza a cada mudança, sem botão de buscar, e mostra o número de resultados; os resultados anteriores continuam visíveis enquanto a nova busca carrega. Os resultados vêm agrupados por categoria, com a contagem de cada uma. Ao escolher uma praia, aparece a balneabilidade dela. Os filtros ficam na URL, então o link pode ser compartilhado e o "voltar" do navegador funciona. Há um botão "Limpar filtros", e uma mensagem com esse mesmo botão quando nada é encontrado. Com o banco local, a busca responde em cerca de 50 ms |
+| **PBI-10** Demonstrar Interesse ou Inscrever-se | Página de cada aula, evento ou ação, e **Minha área → Inscritos** | Coleta nome e e-mail ou WhatsApp, com validação no navegador e na API e consentimento obrigatório para enviar o contato ao organizador. A confirmação aparece na tela, com o número de inscritos e as vagas restantes, e o contador do card é recarregado na hora. Os cards de aulas, eventos e ações mostram o contador de interessados, inscritos ou voluntários. Os eventos mostram as vagas disponíveis e "Vagas esgotadas" quando lotam, e aí o formulário some; o mesmo acontece em atividades canceladas ou já realizadas. Inscrição duplicada é recusada. O organizador dono vê a lista de inscritos, com links para e-mail ou WhatsApp e um botão para copiar os contatos. A rota `/api/metricas` acompanha a meta de 100 inscrições do MVP |
 | **PBI-11** Autenticação e Perfil do Organizador | **Área do organizador** no topo (`/entrar`, `/criar-conta`, `/minha-area`) | Login por e-mail e senha, com validação no navegador e na API e mensagem única para credenciais erradas. Cadastro de conta. Recuperação de senha funcional: o link chega por e-mail (Mailpit no Docker), vale 60 minutos e só pode ser usado uma vez; ao redefinir, todas as sessões são encerradas. Na **Minha área**, o organizador gerencia as próprias aulas (publicadas ou aguardando aprovação), edita o perfil e troca a senha. As rotas da área do organizador mandam para o login quando não há sessão e voltam à página pedida depois |
 
-> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento` e `limite_vagas`. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
+> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento`, `limite_vagas` e `inscritos`. A tabela `inscricao` ganhou a coluna `contato_normalizado` e uma restrição de unicidade. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
 
-Ficam para as próximas sprints: formulário de inscrição (PBI-10), alteração de status (PBI-12), busca textual global (PBI-13) e feedback (PBI-14).
+Ficam para as próximas sprints: alteração de status (PBI-12), busca textual global (PBI-13) e feedback (PBI-14).
 
 ## Documentação
 

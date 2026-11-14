@@ -108,6 +108,18 @@ describe('api', () => {
     ]);
   });
 
+  test('inscrever envia POST para a atividade (PBI-10)', async () => {
+    const fetch = vi.fn(async () => respostaJson({}, 201));
+    vi.stubGlobal('fetch', fetch);
+
+    await api.inscrever(7, { nome: 'Bia', contato: 'bia@exemplo.com', consentimento: true });
+
+    const [url, opcoes] = fetch.mock.calls[0];
+    expect(url).toBe('/api/atividades/7/inscricoes');
+    expect(opcoes.method).toBe('POST');
+    expect(JSON.parse(opcoes.body)).toEqual({ nome: 'Bia', contato: 'bia@exemplo.com', consentimento: true });
+  });
+
   test('consultas públicas não enviam o token', async () => {
     const fetch = vi.fn(async () => respostaJson({}));
     vi.stubGlobal('fetch', fetch);

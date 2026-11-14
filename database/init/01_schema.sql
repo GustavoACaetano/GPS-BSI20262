@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06, PBI-07, PBI-08 e PBI-11)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-11)
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
@@ -83,6 +83,9 @@ CREATE TABLE atividade (
     -- PBI-07: regulamento do evento e limite de vagas (NULL = sem limite)
     regulamento         TEXT,
     limite_vagas        INTEGER CHECK (limite_vagas IS NULL OR limite_vagas > 0),
+    -- PBI-10: total de inscrições, atualizado no mesmo comando que grava cada inscrição
+    -- (o UPDATE com "inscritos < limite_vagas" impede estourar as vagas com inscrições simultâneas)
+    inscritos           INTEGER NOT NULL DEFAULT 0,
     -- Ações comunitárias
     objetivo_ambiental  TEXT,
     recomendacoes       TEXT[] NOT NULL DEFAULT '{}',
@@ -106,6 +109,9 @@ CREATE TABLE atividade (
                              -- COALESCE: sem ele, FALSE OR NULL = NULL e o CHECK deixaria passar
                              AND (gratuito OR COALESCE(valor_inscricao, 0) > 0))
     ),
+    CONSTRAINT inscritos_dentro_do_limite CHECK (
+        inscritos >= 0 AND (limite_vagas IS NULL OR inscritos <= limite_vagas)
+    ),
     CONSTRAINT acao_campos CHECK (
         tipo <> 'ACAO_COMUNITARIA' OR (objetivo_ambiental IS NOT NULL AND data_inicio IS NOT NULL
                                        AND local_detalhe IS NOT NULL)
@@ -118,14 +124,17 @@ CREATE INDEX idx_atividade_organizador ON atividade (organizador_id);
 -- PBI-09: filtros combinados consultam só publicadas, por tipo e data
 CREATE INDEX idx_atividade_explorar ON atividade (tipo, data_inicio) WHERE publicada;
 
--- Registros de interesse/inscrição. O formulário é escopo do PBI-10;
--- nesta sprint a tabela alimenta o contador de voluntários do PBI-05.
+-- PBI-10: inscrições e demonstrações de interesse (aulas, eventos e ações).
+-- O contato (e-mail ou WhatsApp) só é visível para o organizador dono da atividade.
 CREATE TABLE inscricao (
-    id            SERIAL PRIMARY KEY,
-    atividade_id  INTEGER NOT NULL REFERENCES atividade (id) ON DELETE CASCADE,
-    nome          VARCHAR(120) NOT NULL,
-    contato       VARCHAR(120) NOT NULL,
-    criado_em     TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    id                   SERIAL PRIMARY KEY,
+    atividade_id         INTEGER NOT NULL REFERENCES atividade (id) ON DELETE CASCADE,
+    nome                 VARCHAR(120) NOT NULL,
+    contato              VARCHAR(120) NOT NULL,
+    -- e-mail em minúsculas ou só os dígitos do telefone: impede inscrição duplicada
+    contato_normalizado  VARCHAR(120) NOT NULL,
+    criado_em            TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT inscricao_unica UNIQUE (atividade_id, contato_normalizado)
 );
 
 CREATE INDEX idx_inscricao_atividade ON inscricao (atividade_id);

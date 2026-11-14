@@ -72,6 +72,7 @@ function SecaoPublicacoes({ secao, dados }) {
                   )}
                   <SeloStatus status={item.status} />
                   {item.publicada && <Link to={`/atividades/${item.id}`}>Ver</Link>}
+                  <Link to={`/minha-area/inscritos/${item.id}`}>Inscritos ({item.interessados ?? 0})</Link>
                   {!encerrada && <Link to={`/${secao.caminho}/${item.id}/editar`}>Editar</Link>}
                 </div>
               </li>

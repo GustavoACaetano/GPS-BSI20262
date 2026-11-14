@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom';
 import { AcaoCard, AulaCard, EventoCard } from '../components/AtividadeCards.jsx';
 import { Carregando, Erro } from '../components/Estado.jsx';
+import FormularioInscricao from '../components/FormularioInscricao.jsx';
 import { api } from '../api.js';
 import { useDados } from '../hooks.js';
 import { useSessao } from '../sessao.jsx';
@@ -20,7 +21,7 @@ const EDICAO = {
 
 export default function AtividadeDetalhePage() {
   const { id } = useParams();
-  const { dados: atividade, erro, carregando } = useDados(() => api.obterAtividade(id), [id], 10000);
+  const { dados: atividade, erro, carregando, recarregar } = useDados(() => api.obterAtividade(id), [id], 10000);
   const { organizador } = useSessao();
 
   if (erro) return <Erro erro={erro} />;
@@ -64,14 +65,8 @@ export default function AtividadeDetalhePage() {
         )}
       </section>
 
-      <section className="painel painel--neutro">
-        <h2>Inscrição</h2>
-        <p className="texto-suave">
-          {atividade.status === 'CANCELADO'
-            ? 'Esta atividade foi cancelada pelo organizador.'
-            : 'O formulário de inscrição online chega na próxima versão. Por enquanto, fale com o responsável pelo contato acima.'}
-        </p>
-      </section>
+      {/* PBI-10: após a inscrição, recarrega para atualizar o contador do card. */}
+      <FormularioInscricao key={atividade.id} atividade={atividade} aoInscrever={recarregar} />
     </article>
   );
 }

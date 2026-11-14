@@ -130,12 +130,25 @@ FROM (VALUES
 ) AS c (titulo, descricao, praia, responsavel, contato, local_detalhe, dias, objetivo, recomendacoes, apoio)
 JOIN praia p ON p.nome = c.praia;
 
--- Interessados já registrados nas ações comunitárias (contador do PBI-05)
-INSERT INTO inscricao (atividade_id, nome, contato)
-SELECT a.id, 'Voluntário ' || n, 'voluntario' || n || '@exemplo.com'
+-- Interessados já registrados (contador do PBI-05 e inscrições do PBI-10)
+INSERT INTO inscricao (atividade_id, nome, contato, contato_normalizado)
+SELECT a.id, 'Voluntário ' || n, 'voluntario' || n || '@exemplo.com', 'voluntario' || n || '@exemplo.com'
 FROM atividade a
 CROSS JOIN LATERAL generate_series(1, 5 + (a.id % 4) * 6) AS n
 WHERE a.tipo = 'ACAO_COMUNITARIA';
+
+-- Inscritos em alguns eventos e aulas; o Torneio de Futevôlei fica quase lotado (30 de 32 vagas).
+INSERT INTO inscricao (atividade_id, nome, contato, contato_normalizado)
+SELECT a.id, 'Atleta ' || n, 'atleta' || n || '@exemplo.com', 'atleta' || n || '@exemplo.com'
+FROM atividade a
+CROSS JOIN LATERAL generate_series(1, CASE a.titulo
+    WHEN 'Torneio de Futevôlei de Verão' THEN 30
+    WHEN 'Circuito Capixaba de Surf - Etapa Serra' THEN 18
+    WHEN 'Escolinha de Surf Itaparica' THEN 6
+    WHEN 'Futevôlei na Itapuã' THEN 4
+    ELSE 0 END) AS n;
+
+UPDATE atividade a SET inscritos = (SELECT COUNT(*) FROM inscricao i WHERE i.atividade_id = a.id);
 
 -- PBI-11/PBI-07/PBI-08: organizadores de demonstração (senha de todos: gobeach123)
 --   demo@gobeach.dev    -> dono das aulas da carga inicial

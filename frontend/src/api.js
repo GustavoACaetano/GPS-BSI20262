@@ -59,6 +59,10 @@ export const api = {
   // PBI-09
   explorar: (filtros) => get('/atividades/explorar', filtros),
   listarModalidades: () => get('/atividades/modalidades'),
+  // PBI-10
+  inscrever: (id, dados) => enviar('POST', `/atividades/${id}/inscricoes`, dados),
+  listarInscritos: (id) => get(`/atividades/minhas/${id}/inscricoes`, {}, { autenticado: true }),
+  obterMetricas: () => get('/metricas'),
   // PBI-06 (exige login)
   cadastrarAula: (aula) => enviar('POST', '/atividades/aulas', aula),
   editarAula: (id, aula) => enviar('PUT', `/atividades/aulas/${id}`, aula),

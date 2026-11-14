@@ -924,3 +924,40 @@ a {
 .detalhe > .botao + .botao {
   margin-top: 0;
 }
+
+/* PBI-10: inscrição */
+.formulario--compacto {
+  gap: 12px;
+}
+
+.formulario--compacto .botao {
+  align-self: flex-start;
+}
+
+.esgotado {
+  color: var(--cor-impropria);
+  font-weight: 700;
+}
+
+.tabela-inscritos {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.tabela-inscritos th,
+.tabela-inscritos td {
+  text-align: left;
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--cor-borda);
+  vertical-align: top;
+}
+
+.tabela-inscritos th {
+  color: var(--cor-texto-suave);
+  font-weight: 600;
+}
+
+.tabela-rolagem {
+  overflow-x: auto;
+}
