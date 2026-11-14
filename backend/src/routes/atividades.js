@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { query } from '../db.js';
 import { validarAula } from '../validacaoAula.js';
+import { validarAcao } from '../validacaoAcao.js';
 import { exigirLogin } from '../autenticacao.js';
 import { mesmoSegredo } from '../seguranca.js';
 
@@ -71,6 +72,7 @@ function formatarAtividade(linha) {
     pontoEncontro: linha.local_detalhe,
     dataInicio: linha.data_inicio.toISOString(),
     objetivoAmbiental: linha.objetivo_ambiental,
+    apoioLocal: linha.apoio_local ?? null,
     recomendacoes: linha.recomendacoes,
   };
 }
@@ -179,11 +181,13 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// PBI-06: Cadastrar e Publicar Aulas Esportivas (exige login do PBI-11)
+// Cadastro e edição pelo organizador logado (PBI-11):
+//   PBI-06 aulas  -> POST /api/atividades/aulas, PUT /api/atividades/aulas/:id
+//   PBI-08 ações  -> POST /api/atividades/acoes, PUT /api/atividades/acoes/:id
 //
-// A aula pertence ao organizador que a cadastrou; só ele pode editá-la.
-// Com MODERAR_CADASTROS=true, novas aulas ficam ocultas até aprovação por quem
-// tem o ADMIN_TOKEN; caso contrário, são publicadas imediatamente.
+// A atividade pertence ao organizador que a cadastrou; só ele pode editá-la.
+// Com MODERAR_CADASTROS=true, novos cadastros ficam ocultos até aprovação por quem
+// tem o ADMIN_TOKEN; caso contrário, são publicados imediatamente.
 // ---------------------------------------------------------------------------
 
 const moderacaoAtiva = () => process.env.MODERAR_CADASTROS === 'true';
@@ -194,14 +198,6 @@ function responderInvalido(res, campos) {
   res.status(400).json({ erro: 'Revise os campos destacados.', campos });
 }
 
-const CAMPOS_AULA = `titulo, descricao, praia_id, responsavel, contato, modalidade,
-                     local_detalhe, dias_semana, hora_inicio, hora_fim`;
-
-const valoresAula = (d) => [
-  d.titulo, d.descricao, d.praiaId, d.instrutor, d.contato, d.modalidade,
-  d.localDetalhe, d.diasSemana, d.horaInicio, d.horaFim,
-];
-
 // Junta a linha gravada com a praia para responder no mesmo formato das consultas.
 const SQL_COM_PRAIA = (cte) => `
   WITH gravada AS (${cte})
@@ -211,65 +207,96 @@ const SQL_COM_PRAIA = (cte) => `
   JOIN praia p ON p.id = g.praia_id
 `;
 
-// POST /api/atividades/aulas
-router.post('/aulas', exigirLogin, async (req, res, next) => {
-  try {
-    const { dados, campos } = validarAula(req.body);
-    if (campos) return responderInvalido(res, campos);
+const CADASTROS = [
+  {
+    tipo: 'AULA',
+    caminho: 'aulas',
+    artigo: 'a aula',
+    naoEncontrada: 'Aula não encontrada.',
+    validar: validarAula,
+    colunas: ['titulo', 'descricao', 'praia_id', 'responsavel', 'contato', 'modalidade',
+      'local_detalhe', 'dias_semana', 'hora_inicio', 'hora_fim'],
+    valores: (d) => [d.titulo, d.descricao, d.praiaId, d.instrutor, d.contato, d.modalidade,
+      d.localDetalhe, d.diasSemana, d.horaInicio, d.horaFim],
+  },
+  {
+    tipo: 'ACAO_COMUNITARIA',
+    caminho: 'acoes',
+    artigo: 'a ação',
+    naoEncontrada: 'Ação comunitária não encontrada.',
+    validar: (corpo) => validarAcao(corpo),
+    colunas: ['titulo', 'descricao', 'praia_id', 'responsavel', 'contato', 'local_detalhe',
+      'data_inicio', 'objetivo_ambiental', 'apoio_local', 'recomendacoes'],
+    valores: (d) => [d.titulo, d.descricao, d.praiaId, d.responsavel, d.contato, d.pontoEncontro,
+      d.dataInicio, d.objetivoAmbiental, d.apoioLocal, d.recomendacoes],
+  },
+];
 
-    const resultado = await query(
-      SQL_COM_PRAIA(`
-        INSERT INTO atividade (tipo, ${CAMPOS_AULA}, publicada, organizador_id)
-        VALUES ('AULA', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-        RETURNING *
-      `),
-      [...valoresAula(dados), !moderacaoAtiva(), req.organizador.id],
-    );
+const marcadores = (quantidade, inicio = 1) =>
+  Array.from({ length: quantidade }, (_, i) => `$${inicio + i}`).join(', ');
 
-    res.status(201).json(formatarDoDono(resultado.rows[0]));
-  } catch (erro) {
-    if (erro.code === PRAIA_INEXISTENTE) {
-      return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
+for (const cadastro of CADASTROS) {
+  const { tipo, caminho, colunas } = cadastro;
+  const n = colunas.length;
+
+  router.post(`/${caminho}`, exigirLogin, async (req, res, next) => {
+    try {
+      const { dados, campos } = cadastro.validar(req.body);
+      if (campos) return responderInvalido(res, campos);
+
+      const resultado = await query(
+        SQL_COM_PRAIA(`
+          INSERT INTO atividade (tipo, ${colunas.join(', ')}, publicada, organizador_id)
+          VALUES ('${tipo}', ${marcadores(n + 2)})
+          RETURNING *
+        `),
+        [...cadastro.valores(dados), !moderacaoAtiva(), req.organizador.id],
+      );
+
+      res.status(201).json(formatarDoDono(resultado.rows[0]));
+    } catch (erro) {
+      if (erro.code === PRAIA_INEXISTENTE) {
+        return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
+      }
+      next(erro);
     }
-    next(erro);
-  }
-});
+  });
 
-// PUT /api/atividades/aulas/:id  (somente o organizador dono)
-router.put('/aulas/:id', exigirLogin, async (req, res, next) => {
-  try {
-    const id = lerId(req, res);
-    if (id === null) return;
+  router.put(`/${caminho}/:id`, exigirLogin, async (req, res, next) => {
+    try {
+      const id = lerId(req, res);
+      if (id === null) return;
 
-    const existente = await query('SELECT tipo, organizador_id FROM atividade WHERE id = $1', [id]);
-    if (existente.rowCount === 0 || existente.rows[0].tipo !== 'AULA') {
-      return res.status(404).json({ erro: 'Aula não encontrada.' });
+      const existente = await query('SELECT tipo, organizador_id FROM atividade WHERE id = $1', [id]);
+      if (existente.rowCount === 0 || existente.rows[0].tipo !== tipo) {
+        return res.status(404).json({ erro: cadastro.naoEncontrada });
+      }
+      if (existente.rows[0].organizador_id !== req.organizador.id) {
+        return res.status(403).json({ erro: `Só o organizador que cadastrou ${cadastro.artigo} pode editá-la.` });
+      }
+
+      const { dados, campos } = cadastro.validar(req.body);
+      if (campos) return responderInvalido(res, campos);
+
+      const resultado = await query(
+        SQL_COM_PRAIA(`
+          UPDATE atividade
+          SET (${colunas.join(', ')}, atualizado_em) = (${marcadores(n)}, NOW())
+          WHERE id = $${n + 1} AND organizador_id = $${n + 2}
+          RETURNING *
+        `),
+        [...cadastro.valores(dados), id, req.organizador.id],
+      );
+
+      res.json(formatarDoDono(resultado.rows[0]));
+    } catch (erro) {
+      if (erro.code === PRAIA_INEXISTENTE) {
+        return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
+      }
+      next(erro);
     }
-    if (existente.rows[0].organizador_id !== req.organizador.id) {
-      return res.status(403).json({ erro: 'Só o organizador que cadastrou a aula pode editá-la.' });
-    }
-
-    const { dados, campos } = validarAula(req.body);
-    if (campos) return responderInvalido(res, campos);
-
-    const resultado = await query(
-      SQL_COM_PRAIA(`
-        UPDATE atividade
-        SET (${CAMPOS_AULA}, atualizado_em) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-        WHERE id = $11 AND organizador_id = $12
-        RETURNING *
-      `),
-      [...valoresAula(dados), id, req.organizador.id],
-    );
-
-    res.json(formatarDoDono(resultado.rows[0]));
-  } catch (erro) {
-    if (erro.code === PRAIA_INEXISTENTE) {
-      return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
-    }
-    next(erro);
-  }
-});
+  });
+}
 
 // PATCH /api/atividades/:id/publicacao  { publicada: true|false }  (cabeçalho X-Admin-Token)
 router.patch('/:id/publicacao', async (req, res, next) => {

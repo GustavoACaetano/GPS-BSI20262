@@ -11,6 +11,12 @@ const VOLTAR = {
   ACAO_COMUNITARIA: ['/acoes', 'Todas as ações'],
 };
 
+// Tipos que o organizador dono pode editar (PBI-06 e PBI-08).
+const EDICAO = {
+  AULA: ['aulas', 'Editar esta aula'],
+  ACAO_COMUNITARIA: ['acoes', 'Editar esta ação'],
+};
+
 export default function AtividadeDetalhePage() {
   const { id } = useParams();
   const { dados: atividade, erro, carregando } = useDados(() => api.obterAtividade(id), [id], 10000);
@@ -43,9 +49,9 @@ export default function AtividadeDetalhePage() {
           {atividade.responsavel}
           {atividade.contato && <> · {atividade.contato}</>}
         </p>
-        {atividade.tipo === 'AULA' && organizador && atividade.organizadorId === organizador.id && (
-          <Link to={`/aulas/${atividade.id}/editar`} className="link-editar">
-            Editar esta aula
+        {EDICAO[atividade.tipo] && organizador && atividade.organizadorId === organizador.id && (
+          <Link to={`/${EDICAO[atividade.tipo][0]}/${atividade.id}/editar`} className="link-editar">
+            {EDICAO[atividade.tipo][1]}
           </Link>
         )}
       </section>

@@ -6,46 +6,76 @@ import SeloStatus from '../components/SeloStatus.jsx';
 import { api } from '../api.js';
 import { useDados } from '../hooks.js';
 import { useSessao } from '../sessao.jsx';
+import { formatarDataEvento } from '../formatacao.js';
 
-function MinhasAulas() {
-  const { dados, erro, carregando } = useDados(() => api.listarMinhasAtividades(), []);
-  const aulas = dados?.dados.filter((a) => a.tipo === 'AULA') ?? [];
+// Seções de "Minhas publicações" por tipo (PBI-06 aulas, PBI-08 ações).
+const SECOES = [
+  {
+    tipo: 'AULA',
+    titulo: 'Minhas aulas',
+    caminho: 'aulas',
+    novo: '+ Cadastrar aula',
+    vazio: 'Você ainda não cadastrou nenhuma aula.',
+    resumo: (a) => `${a.modalidade} · ${a.praia.nome} · ${a.diasSemana} · ${a.horaInicio}–${a.horaFim}`,
+  },
+  {
+    tipo: 'ACAO_COMUNITARIA',
+    titulo: 'Minhas ações comunitárias',
+    caminho: 'acoes',
+    novo: '+ Cadastrar ação',
+    vazio: 'Você ainda não cadastrou nenhuma ação comunitária.',
+    resumo: (a) => `${a.praia.nome} · ${formatarDataEvento(a.dataInicio)} · ${a.interessados} voluntários`,
+  },
+];
 
+// Ações com data passada já aconteceram: não aparecem mais na aba Ações e não são editáveis.
+const jaAconteceu = (atividade) => Boolean(atividade.dataInicio) && new Date(atividade.dataInicio) <= new Date();
+
+function SecaoPublicacoes({ secao, dados }) {
+  const itens = dados.dados.filter((a) => a.tipo === secao.tipo);
   return (
     <section className="painel painel--neutro">
       <div className="titulo-pagina--acao">
-        <h2>Minhas aulas</h2>
-        <Link to="/aulas/nova" className="botao">+ Cadastrar aula</Link>
+        <h2>{secao.titulo}</h2>
+        <Link to={`/${secao.caminho}/nova`} className="botao">{secao.novo}</Link>
       </div>
-      {erro && <Erro erro={erro} />}
-      {carregando && !dados && <Carregando />}
-      {dados && aulas.length === 0 && <Vazio>Você ainda não cadastrou nenhuma aula.</Vazio>}
-      {aulas.length > 0 && (
+      {itens.length === 0 && <Vazio>{secao.vazio}</Vazio>}
+      {itens.length > 0 && (
         <ul className="minhas">
-          {aulas.map((aula) => (
-            <li key={aula.id}>
-              <div>
-                <strong>{aula.titulo}</strong>
-                <span className="texto-suave">
-                  {aula.modalidade} · {aula.praia.nome} · {aula.diasSemana} · {aula.horaInicio}–{aula.horaFim}
-                </span>
-              </div>
-              <div className="minhas__acoes">
-                {aula.publicada ? (
-                  <span className="tag tag--propria">Publicada</span>
-                ) : (
-                  <span className="tag tag--alerta">Aguardando aprovação</span>
-                )}
-                <SeloStatus status={aula.status} />
-                {aula.publicada && <Link to={`/atividades/${aula.id}`}>Ver</Link>}
-                <Link to={`/aulas/${aula.id}/editar`}>Editar</Link>
-              </div>
-            </li>
-          ))}
+          {itens.map((item) => {
+            const encerrada = jaAconteceu(item);
+            return (
+              <li key={item.id}>
+                <div>
+                  <strong>{item.titulo}</strong>
+                  <span className="texto-suave">{secao.resumo(item)}</span>
+                </div>
+                <div className="minhas__acoes">
+                  {encerrada ? (
+                    <span className="tag tag--neutra">Realizada</span>
+                  ) : item.publicada ? (
+                    <span className="tag tag--propria">Publicada</span>
+                  ) : (
+                    <span className="tag tag--alerta">Aguardando aprovação</span>
+                  )}
+                  <SeloStatus status={item.status} />
+                  {item.publicada && <Link to={`/atividades/${item.id}`}>Ver</Link>}
+                  {!encerrada && <Link to={`/${secao.caminho}/${item.id}/editar`}>Editar</Link>}
+                </div>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>
   );
+}
+
+function MinhasPublicacoes() {
+  const { dados, erro, carregando } = useDados(() => api.listarMinhasAtividades(), []);
+  if (erro) return <Erro erro={erro} />;
+  if (carregando && !dados) return <Carregando />;
+  return SECOES.map((secao) => <SecaoPublicacoes key={secao.tipo} secao={secao} dados={dados} />);
 }
 
 function Perfil() {
@@ -151,7 +181,7 @@ export default function MinhaAreaPage() {
           Sair
         </button>
       </div>
-      <MinhasAulas />
+      <MinhasPublicacoes />
       <Perfil />
       <TrocarSenha />
     </section>

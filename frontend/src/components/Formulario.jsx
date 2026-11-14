@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { api } from '../api.js';
+import { useDados } from '../hooks.js';
 
 // Campo rotulado com dica e mensagem de erro acessível.
 export function Campo({ id, rotulo, erro, obrigatorio, children, dica }) {
@@ -77,4 +79,19 @@ export function erroSenha(senha) {
   if (senha.length > 128) return 'A senha deve ter no máximo 128 caracteres.';
   if (!/[A-Za-z]/.test(senha) || !/\d/.test(senha)) return 'A senha deve ter letras e números.';
   return null;
+}
+
+// Seleção de praia usada nos formulários de cadastro (PBI-06, PBI-08).
+export function SelectPraia(props) {
+  const { dados: praias } = useDados(() => api.listarPraias({ limite: 100 }), []);
+  return (
+    <select {...props}>
+      <option value="">{praias ? 'Selecione…' : 'Carregando praias…'}</option>
+      {praias?.dados.map((praia) => (
+        <option key={praia.id} value={praia.id}>
+          {praia.nome} · {praia.municipio}
+        </option>
+      ))}
+    </select>
+  );
 }

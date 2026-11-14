@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 e PBI-11)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06, PBI-08 e PBI-11)
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
@@ -83,6 +83,7 @@ CREATE TABLE atividade (
     -- Ações comunitárias
     objetivo_ambiental  TEXT,
     recomendacoes       TEXT[] NOT NULL DEFAULT '{}',
+    apoio_local         VARCHAR(300),            -- PBI-08: parceiros/apoiadores locais da ação
     -- PBI-06: publicação imediata ou sob aprovação (só publicadas aparecem nas consultas)
     publicada           BOOLEAN NOT NULL DEFAULT TRUE,
     -- PBI-11: organizador dono da publicação (só ele pode editá-la)

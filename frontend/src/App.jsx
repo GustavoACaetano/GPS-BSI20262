@@ -7,6 +7,8 @@ import AcoesPage from './pages/AcoesPage.jsx';
 import AtividadeDetalhePage from './pages/AtividadeDetalhePage.jsx';
 import CadastrarAulaPage from './pages/CadastrarAulaPage.jsx';
 import EditarAulaPage from './pages/EditarAulaPage.jsx';
+import CadastrarAcaoPage from './pages/CadastrarAcaoPage.jsx';
+import EditarAcaoPage from './pages/EditarAcaoPage.jsx';
 import EntrarPage from './pages/EntrarPage.jsx';
 import CriarContaPage from './pages/CriarContaPage.jsx';
 import RecuperarSenhaPage from './pages/RecuperarSenhaPage.jsx';
@@ -75,6 +77,8 @@ export default function App() {
           <Route path="/minha-area" element={<RotaProtegida><MinhaAreaPage /></RotaProtegida>} />
           <Route path="/eventos" element={<EventosPage />} />
           <Route path="/acoes" element={<AcoesPage />} />
+          <Route path="/acoes/nova" element={<RotaProtegida><CadastrarAcaoPage /></RotaProtegida>} />
+          <Route path="/acoes/:id/editar" element={<RotaProtegida><EditarAcaoPage /></RotaProtegida>} />
           <Route path="/atividades/:id" element={<AtividadeDetalhePage />} />
           <Route path="*" element={<p className="estado">Página não encontrada.</p>} />
         </Routes>

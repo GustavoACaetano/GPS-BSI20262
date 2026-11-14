@@ -75,7 +75,7 @@ export function EventoCard({ evento, detalhe = false }) {
   );
 }
 
-// PBI-05
+// PBI-05 (+ PBI-08: organizador responsável e apoio local)
 export function AcaoCard({ acao, detalhe = false }) {
   return (
     <article className={`card card--atividade${acao.status !== 'ATIVO' ? ' card--inativa' : ''}`}>
@@ -89,6 +89,14 @@ export function AcaoCard({ acao, detalhe = false }) {
         <dd><Praia praia={acao.praia} /></dd>
         <dt>Encontro</dt>
         <dd>{acao.pontoEncontro}</dd>
+        <dt>Responsável</dt>
+        <dd>{acao.responsavel}</dd>
+        {acao.apoioLocal && (
+          <>
+            <dt>Apoio</dt>
+            <dd>{acao.apoioLocal}</dd>
+          </>
+        )}
       </dl>
       {acao.recomendacoes.length > 0 && (
         <div className="recomendacoes">

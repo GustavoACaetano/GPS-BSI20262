@@ -111,6 +111,17 @@ describe('AcaoCard', () => {
     expect(screen.getByText('18').closest('p')).toHaveTextContent('18 voluntários confirmados');
   });
 
+  test('mostra o organizador responsável e o apoio local (PBI-08)', () => {
+    renderizar(<AcaoCard acao={acao({ responsavel: 'Instituto Orla Limpa', apoioLocal: 'Prefeitura de Vitória' })} />);
+    expect(screen.getByText('Instituto Orla Limpa')).toBeInTheDocument();
+    expect(screen.getByText('Prefeitura de Vitória')).toBeInTheDocument();
+  });
+
+  test('sem apoio local não mostra o campo', () => {
+    renderizar(<AcaoCard acao={acao({ apoioLocal: null })} />);
+    expect(screen.queryByText('Apoio')).not.toBeInTheDocument();
+  });
+
   test('sem recomendações não mostra a lista', () => {
     renderizar(<AcaoCard acao={acao({ recomendacoes: [] })} />);
     expect(screen.queryByText('Recomendações')).not.toBeInTheDocument();

@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { api } from '../api.js';
-import { useDados } from '../hooks.js';
-import { Campo } from './Formulario.jsx';
+import { Campo, SelectPraia } from './Formulario.jsx';
 
 // PBI-06: formulário de cadastro/edição de aulas, com validação dos campos
 // obrigatórios no navegador e exibição dos erros devolvidos pela API.
@@ -64,7 +62,6 @@ export default function FormularioAula({ inicial = AULA_VAZIA, rotuloEnviar, aoE
   const [erros, setErros] = useState({});
   const [erroGeral, setErroGeral] = useState(null);
   const [enviando, setEnviando] = useState(false);
-  const { dados: praias } = useDados(() => api.listarPraias({ limite: 100 }), []);
 
   const alterar = (campo) => (evento) => {
     setValores((atual) => ({ ...atual, [campo]: evento.target.value }));
@@ -135,14 +132,7 @@ export default function FormularioAula({ inicial = AULA_VAZIA, rotuloEnviar, aoE
       <fieldset>
         <legend>Onde e quando</legend>
         <Campo id="praiaId" rotulo="Praia" erro={erros.praiaId} obrigatorio>
-          <select {...atributos('praiaId')}>
-            <option value="">{praias ? 'Selecione…' : 'Carregando praias…'}</option>
-            {praias?.dados.map((praia) => (
-              <option key={praia.id} value={praia.id}>
-                {praia.nome} · {praia.municipio}
-              </option>
-            ))}
-          </select>
+          <SelectPraia {...atributos('praiaId')} />
         </Campo>
         <Campo id="localDetalhe" rotulo="Local na praia" erro={erros.localDetalhe} dica="Ponto de referência para os alunos.">
           <input {...atributos('localDetalhe')} maxLength={160} placeholder="Ex.: Em frente ao quiosque 12" />

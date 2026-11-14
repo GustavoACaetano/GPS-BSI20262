@@ -91,30 +91,34 @@ FROM (VALUES
 ) AS e (titulo, descricao, praia, responsavel, contato, modalidade, local_detalhe, dias, gratuito, valor, status)
 JOIN praia p ON p.nome = e.praia;
 
--- PBI-05: ações comunitárias
+-- PBI-05: ações comunitárias (PBI-08: com apoio local)
 INSERT INTO atividade (tipo, titulo, descricao, praia_id, responsavel, contato, local_detalhe,
-                       data_inicio, objetivo_ambiental, recomendacoes)
+                       data_inicio, objetivo_ambiental, recomendacoes, apoio_local)
 SELECT 'ACAO_COMUNITARIA', c.titulo, c.descricao, p.id, c.responsavel, c.contato, c.local_detalhe,
        date_trunc('day', NOW()) + c.dias * INTERVAL '1 day' + INTERVAL '8 hours',
-       c.objetivo, c.recomendacoes
+       c.objetivo, c.recomendacoes, c.apoio
 FROM (VALUES
     ('Mutirão de Limpeza de Camburi', 'Coleta de resíduos ao longo da orla.', 'Camburi',
      'Instituto Orla Limpa', 'voluntarios@orlalimpa.org', 'Píer de Iemanjá', 4,
      'Retirar resíduos sólidos da faixa de areia e conscientizar banhistas.',
-     ARRAY['Levar luvas', 'Usar protetor solar', 'Levar garrafa de água']),
+     ARRAY['Levar luvas', 'Usar protetor solar', 'Levar garrafa de água'],
+     'Prefeitura de Vitória (sacos e caçambas) e quiosques da orla (água para voluntários)'),
     ('Restinga Viva Setiba', 'Plantio de mudas nativas da restinga.', 'Setiba',
      'Amigos do Paulo César Vinha', '(27) 97777-0001', 'Entrada do parque, estacionamento', 9,
      'Recuperar a vegetação de restinga degradada.',
-     ARRAY['Usar calçado fechado', 'Levar boné', 'Levar repelente']),
+     ARRAY['Usar calçado fechado', 'Levar boné', 'Levar repelente'],
+     'IEMA (mudas nativas) e Parque Estadual Paulo César Vinha'),
     ('Limpeza Subaquática Ilha do Boi', 'Mergulhadores retiram lixo do fundo das enseadas.', 'Ilha do Boi',
      'Projeto Mar Limpo', 'marlimpo@exemplo.org', 'Enseada principal', 11,
      'Remover resíduos submersos que afetam a vida marinha.',
-     ARRAY['Trazer equipamento de mergulho', 'Credencial de mergulho obrigatória']),
+     ARRAY['Trazer equipamento de mergulho', 'Credencial de mergulho obrigatória'],
+     NULL),
     ('Praia Sem Bituca Jacaraípe', 'Coleta de bitucas de cigarro e microlixo.', 'Jacaraípe',
      'Coletivo Serra Verde', '(27) 97777-0002', 'Quiosque do Surf Clube', 6,
      'Reduzir a presença de bitucas e microplásticos na areia.',
-     ARRAY['Levar luvas', 'Levar sacola reutilizável', 'Usar protetor solar'])
-) AS c (titulo, descricao, praia, responsavel, contato, local_detalhe, dias, objetivo, recomendacoes)
+     ARRAY['Levar luvas', 'Levar sacola reutilizável', 'Usar protetor solar'],
+     'Associação de Moradores de Jacaraípe e Surf Clube Jacaraípe')
+) AS c (titulo, descricao, praia, responsavel, contato, local_detalhe, dias, objetivo, recomendacoes, apoio)
 JOIN praia p ON p.nome = c.praia;
 
 -- Interessados já registrados nas ações comunitárias (contador do PBI-05)
@@ -124,12 +128,19 @@ FROM atividade a
 CROSS JOIN LATERAL generate_series(1, 5 + (a.id % 4) * 6) AS n
 WHERE a.tipo = 'ACAO_COMUNITARIA';
 
--- PBI-11: organizador de demonstração, dono das aulas da carga inicial.
--- Login: demo@gobeach.dev / senha: gobeach123
+-- PBI-11/PBI-08: organizadores de demonstração (senha de ambos: gobeach123)
+--   demo@gobeach.dev -> dono das aulas da carga inicial
+--   ong@gobeach.dev  -> dono das ações comunitárias da carga inicial
 INSERT INTO organizador (nome, email, telefone, senha_hash) VALUES
     ('Escolas de Praia GoBeach (demo)', 'demo@gobeach.dev', '(27) 99999-0000',
+     'scrypt$6165a94f06462b2ef50c10acf86e730d$4ce9d3815fddee63ec798be9a4b522a75ea80d9442d70d26364f000a2ad90fa709a53d38c244c1a2db43f584f11ac03cae5b2a92a9fbd0cd3c2eebc9c8573489'),
+    ('Rede de ONGs da Orla (demo)', 'ong@gobeach.dev', '(27) 97777-0000',
      'scrypt$6165a94f06462b2ef50c10acf86e730d$4ce9d3815fddee63ec798be9a4b522a75ea80d9442d70d26364f000a2ad90fa709a53d38c244c1a2db43f584f11ac03cae5b2a92a9fbd0cd3c2eebc9c8573489');
 
 UPDATE atividade
 SET organizador_id = (SELECT id FROM organizador WHERE email = 'demo@gobeach.dev')
 WHERE tipo = 'AULA';
+
+UPDATE atividade
+SET organizador_id = (SELECT id FROM organizador WHERE email = 'ong@gobeach.dev')
+WHERE tipo = 'ACAO_COMUNITARIA';

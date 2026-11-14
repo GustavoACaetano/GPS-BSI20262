@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import { formatarData, formatarDataEvento, formatarDataHora, formatarMoeda } from './formatacao.js';
+import {
+  deDataHoraLocal,
+  formatarData,
+  formatarDataEvento,
+  formatarDataHora,
+  formatarMoeda,
+  paraDataHoraLocal,
+} from './formatacao.js';
 
 // Intl usa espaço não separável em alguns formatos; normaliza para comparar.
 const normalizar = (texto) => texto.replace(/\s/g, ' ');
@@ -23,5 +30,10 @@ describe('formatacao', () => {
   test('formatarMoeda formata em reais', () => {
     expect(normalizar(formatarMoeda(50))).toBe('R$ 50,00');
     expect(normalizar(formatarMoeda(1234.5))).toBe('R$ 1.234,50');
+  });
+
+  test('paraDataHoraLocal e deDataHoraLocal convertem no horário de Brasília', () => {
+    expect(paraDataHoraLocal('2027-03-21T02:30:00.000Z')).toEqual({ data: '2027-03-20', hora: '23:30' });
+    expect(deDataHoraLocal('2027-03-20', '23:30').toISOString()).toBe('2027-03-21T02:30:00.000Z');
   });
 });
