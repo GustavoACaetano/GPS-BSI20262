@@ -1015,3 +1015,126 @@ a {
 .botao--perigo:hover {
   background: #991b1b;
 }
+
+/* PBI-13: busca textual */
+.visualmente-oculto {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.topo__conteudo {
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.busca-global {
+  display: flex;
+  flex: 1 1 220px;
+  max-width: 360px;
+  background: #fff;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.busca-global input {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.9rem;
+  border: 0;
+  padding: 7px 14px;
+  color: var(--cor-texto);
+  background: transparent;
+}
+
+.busca-global input:focus {
+  outline: none;
+}
+
+.busca-global:focus-within {
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.5);
+}
+
+.busca-global button {
+  border: 0;
+  background: transparent;
+  color: var(--cor-primaria);
+  padding: 0 12px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* No celular, a busca ocupa a linha de baixo do topo. */
+@media (max-width: 640px) {
+  .busca-global {
+    order: 3;
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+
+.explorar__praias {
+  margin-bottom: 24px;
+}
+
+.lista-praias {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 8px;
+}
+
+.lista-praias li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio);
+  padding: 10px 12px;
+}
+
+.nenhum-resultado p {
+  margin: 0 0 12px;
+}
+
+.sugestoes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.sugestao {
+  font: inherit;
+  font-weight: 700;
+  color: var(--cor-primaria);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-primaria);
+  border-radius: 999px;
+  padding: 4px 12px;
+  cursor: pointer;
+}
+
+.sugestao:hover {
+  background: #e6f2f7;
+}
+
+.nenhum-resultado .botao {
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}

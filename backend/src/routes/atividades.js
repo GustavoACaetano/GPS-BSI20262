@@ -5,6 +5,7 @@ import { validarAcao } from '../validacaoAcao.js';
 import { validarEvento } from '../validacaoEvento.js';
 import { montarFiltros, TIPOS } from '../filtrosExplorar.js';
 import { notificarInscritos } from '../notificacoes.js';
+import { buscarPraias, sugerirTermos } from '../busca.js';
 import { exigirLogin } from '../autenticacao.js';
 import { mesmoSegredo } from '../seguranca.js';
 
@@ -140,11 +141,15 @@ function lerId(req, res) {
   return id;
 }
 
+// Filtros além da busca textual (para sugerir "buscar sem os filtros" quando nada é encontrado).
+const OUTROS_FILTROS = ['categorias', 'praia', 'municipio', 'modalidade', 'de', 'ate', 'propria'];
+
 // PBI-09: GET /api/atividades/explorar?categorias=AULA,EVENTO&praia=&municipio=&modalidade=&de=&ate=&propria=true
+// PBI-13: &busca=palavras — também devolve as praias encontradas e, sem resultados, sugestões.
 // Filtros combinados; devolve a lista e a contagem por categoria (só atividades publicadas).
 router.get('/explorar', async (req, res, next) => {
   try {
-    const { erro, filtros, parametros, tipos } = montarFiltros(req.query);
+    const { erro, filtros, parametros, tipos, busca } = montarFiltros(req.query);
     if (erro) return res.status(400).json({ erro });
 
     const resultado = await query(
@@ -154,7 +159,31 @@ router.get('/explorar', async (req, res, next) => {
     );
     const dados = resultado.rows.map(formatarAtividade);
     const contagem = Object.fromEntries(tipos.map((t) => [t, dados.filter((a) => a.tipo === t).length]));
-    res.json({ dados, total: dados.length, contagem });
+    const resposta = { dados, total: dados.length, contagem };
+
+    if (busca.palavras.length > 0) {
+      // Praias só entram quando não há filtro de praia nem de categoria.
+      resposta.praias = req.query.praia || req.query.categorias
+        ? []
+        : await buscarPraias(busca.palavras, req.query.municipio);
+
+      if (resposta.total === 0 && resposta.praias.length === 0) {
+        const comOutrosFiltros = OUTROS_FILTROS.some((campo) => req.query[campo]);
+        let semFiltros = null;
+        if (comOutrosFiltros) {
+          const soBusca = montarFiltros({ busca: req.query.busca });
+          const contar = await query(
+            `SELECT COUNT(*)::int AS total FROM atividade a JOIN praia p ON p.id = a.praia_id
+             WHERE ${soBusca.filtros.join(' AND ')}`,
+            soBusca.parametros,
+          );
+          semFiltros = contar.rows[0].total;
+        }
+        resposta.sugestoes = { termos: await sugerirTermos(busca.texto), semFiltros };
+      }
+    }
+
+    res.json(resposta);
   } catch (erro) {
     next(erro);
   }

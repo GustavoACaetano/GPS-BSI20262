@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
-import ExplorarPage, { lerFiltros, paraConsulta } from './ExplorarPage.jsx';
+import ExplorarPage, { lerFiltros, paraConsulta, paraUrl, resumoResultados } from './ExplorarPage.jsx';
 import { api } from '../api.js';
 import { renderizar } from '../test/renderizar.jsx';
 
@@ -51,7 +51,7 @@ describe('ExplorarPage', () => {
   test('mostra os resultados agrupados por categoria, com contagem', async () => {
     abrir();
 
-    expect(await screen.findByText('2 resultados')).toBeInTheDocument();
+    expect(await screen.findByText('2 atividades')).toBeInTheDocument();
     const aulas = screen.getByRole('region', { name: /Aulas/ });
     expect(within(aulas).getByText('Surf para iniciantes')).toBeInTheDocument();
     expect(within(aulas).getByText('1')).toHaveClass('contagem');
@@ -61,7 +61,7 @@ describe('ExplorarPage', () => {
 
   test('combina categoria e praia, refazendo a busca a cada mudança', async () => {
     abrir();
-    await screen.findByText('2 resultados');
+    await screen.findByText('2 atividades');
     await screen.findByRole('option', { name: 'Camburi · Vitória' });
 
     fireEvent.click(screen.getByRole('checkbox', { name: 'Eventos' }));
@@ -121,10 +121,77 @@ describe('ExplorarPage', () => {
     explorar.mockResolvedValue({ dados: [], total: 0, contagem: { AULA: 0 } });
     abrir('/explorar?categorias=AULA&modalidade=Surf');
 
-    expect(await screen.findByText('Nenhuma atividade encontrada com esses filtros.')).toBeInTheDocument();
-    fireEvent.click(screen.getAllByRole('button', { name: 'Limpar filtros' })[0]);
+    expect(await screen.findByText('Nenhum resultado')).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole('button', { name: 'Limpar busca e filtros' })[0]);
 
     await waitFor(() => expect(ultimaConsulta()).toMatchObject({ categorias: '', modalidade: '' }));
     expect(screen.getByRole('checkbox', { name: 'Aulas' })).not.toBeChecked();
+  });
+
+  // --- PBI-13: pesquisa textual ---------------------------------------------------
+
+  test('digitar no campo de busca refaz a consulta depois de uma pausa', async () => {
+    abrir();
+    await screen.findByText('2 atividades');
+
+    fireEvent.change(screen.getByLabelText('Buscar'), { target: { value: 'cambu' } });
+    expect(ultimaConsulta().busca).toBe('');
+
+    await waitFor(() => expect(ultimaConsulta()).toMatchObject({ busca: 'cambu' }), { timeout: 2000 });
+  });
+
+  test('a busca vem da URL, combina com filtros e lista as praias encontradas', async () => {
+    explorar.mockResolvedValue({
+      dados: [aula], total: 1, contagem: { AULA: 1 },
+      praias: [{ id: 3, nome: 'Camburi', municipio: 'Vitória', balneabilidade: null }],
+    });
+    abrir('/explorar?busca=camburi&municipio=Vit%C3%B3ria');
+
+    expect(await screen.findByText('1 atividade e 1 praia')).toBeInTheDocument();
+    expect(screen.getByLabelText('Buscar')).toHaveValue('camburi');
+    expect(ultimaConsulta()).toMatchObject({ busca: 'camburi', municipio: 'Vitória' });
+    const praias = screen.getByRole('region', { name: /Praias/ });
+    expect(within(praias).getByRole('link', { name: /Camburi/ })).toHaveAttribute('href', '/praias/3');
+  });
+
+  test('"Nenhum resultado" mostra sugestões que refazem a busca', async () => {
+    explorar.mockResolvedValue({ dados: [], total: 0, contagem: {}, praias: [], sugestoes: { termos: ['Surf'], semFiltros: null } });
+    abrir('/explorar?busca=surff');
+
+    expect(await screen.findByText(/para "surff"/)).toBeInTheDocument();
+    explorar.mockResolvedValue({ dados: [aula], total: 1, contagem: { AULA: 1 }, praias: [] });
+    fireEvent.click(screen.getByRole('button', { name: 'Surf' }));
+
+    await waitFor(() => expect(ultimaConsulta()).toMatchObject({ busca: 'Surf' }));
+    await waitFor(() => expect(screen.getByLabelText('Buscar')).toHaveValue('Surf'));
+  });
+
+  test('sem resultados por causa dos filtros, oferece buscar só pela palavra', async () => {
+    explorar.mockResolvedValue({ dados: [], total: 0, contagem: {}, praias: [], sugestoes: { termos: [], semFiltros: 3 } });
+    abrir('/explorar?busca=camburi&categorias=AULA&modalidade=Surf');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Buscar "camburi" sem os outros filtros (3 resultados)' }));
+
+    await waitFor(() => expect(ultimaConsulta()).toMatchObject({ busca: 'camburi', categorias: '', modalidade: '' }));
+  });
+
+  test('sem sugestões, dá dicas de busca', async () => {
+    explorar.mockResolvedValue({ dados: [], total: 0, contagem: {}, praias: [], sugestoes: { termos: [], semFiltros: null } });
+    abrir('/explorar?busca=zzzz');
+
+    expect(await screen.findByText(/Confira a grafia/)).toBeInTheDocument();
+  });
+});
+
+describe('paraUrl / resumoResultados', () => {
+  test('paraUrl só leva valores preenchidos para a URL', () => {
+    const vazio = lerFiltros(new URLSearchParams());
+    expect(paraUrl({ ...vazio, busca: '  surf ', categorias: ['AULA'] })).toEqual({ busca: 'surf', categorias: 'AULA' });
+    expect(paraUrl({ ...vazio, quando: 'hoje', de: '2026-01-01' })).toEqual({ quando: 'hoje' });
+  });
+
+  test('resumoResultados conta atividades e praias', () => {
+    expect(resumoResultados({ total: 1 })).toBe('1 atividade');
+    expect(resumoResultados({ total: 0, praias: [{}, {}] })).toBe('0 atividades e 2 praias');
   });
 });

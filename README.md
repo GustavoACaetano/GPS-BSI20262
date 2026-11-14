@@ -4,7 +4,7 @@ Plataforma que centraliza informações de praias, balneabilidade, aulas, evento
 
 Projeto da disciplina de Gerência de Projetos de Software (IFES — Campus Serra), grupo **Ardísia Software**.
 
-Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados), o **PBI-10** (inscrições), o **PBI-11** (autenticação e perfil do organizador) e o **PBI-12** (adiar ou cancelar atividades).
+Esta versão entrega a **Sprint 1** do [Product Backlog](docs/Product%20Backlog%20-%20GoBeach.pdf) (PBI-01 a PBI-05), o **PBI-06** (cadastro de aulas), o **PBI-07** (cadastro de eventos esportivos), o **PBI-08** (cadastro de ações comunitárias), o **PBI-09** (filtros combinados), o **PBI-10** (inscrições), o **PBI-11** (autenticação e perfil do organizador), o **PBI-12** (adiar ou cancelar atividades) e o **PBI-13** (busca por palavra-chave).
 
 ## Estrutura do repositório
 
@@ -124,7 +124,7 @@ As consultas são públicas e só mostram atividades publicadas. As rotas de esc
 | GET | `/api/atividades?tipo=EVENTO` | Próximos eventos em ordem cronológica |
 | GET | `/api/atividades?tipo=ACAO_COMUNITARIA` | Próximas ações com contador de interessados |
 | GET | `/api/atividades/:id` | Detalhe de uma atividade |
-| GET | `/api/atividades/explorar?categorias=&praia=&municipio=&modalidade=&de=&ate=&propria=` | **PBI-09.** Filtros combinados. Devolve `{ dados, total, contagem }`, com a contagem por categoria |
+| GET | `/api/atividades/explorar?busca=&categorias=&praia=&municipio=&modalidade=&de=&ate=&propria=` | **PBI-09/PBI-13.** Busca por palavra-chave e filtros combinados. Devolve `{ dados, total, contagem }`, com a contagem por categoria. Com `busca`, também devolve `praias` e, quando nada é encontrado, `sugestoes` |
 | GET | `/api/atividades/modalidades` | **PBI-09.** Modalidades disponíveis, para as opções do filtro |
 
 Todas as rotas de atividades aceitam `&praia=<id>` para filtrar por praia.
@@ -163,6 +163,7 @@ Todos os parâmetros de `/api/atividades/explorar` são opcionais e podem ser co
 
 | Parâmetro | Efeito |
 |-----------|--------|
+| `busca` | **PBI-13.** Palavras-chave, com até 100 caracteres e 5 palavras. Veja abaixo |
 | `categorias` | `AULA`, `EVENTO` e/ou `ACAO_COMUNITARIA`, separados por vírgula. Vazio busca todas |
 | `praia` / `municipio` | Restringe a uma praia ou a um município |
 | `modalidade` | Busca exata, sem diferenciar maiúsculas. Ações comunitárias não têm modalidade, então saem do resultado |
@@ -170,6 +171,16 @@ Todos os parâmetros de `/api/atividades/explorar` são opcionais e podem ser co
 | `propria=true` | Só atividades em praias cujo último boletim é "Própria" e não está pendente de atualização |
 
 Como nas abas, só aparecem atividades publicadas, e eventos e ações passados ficam de fora.
+
+### Busca por palavra-chave (PBI-13)
+
+- **Busca parcial:** não diferencia maiúsculas nem acentos ("cambu" acha Camburi; "volei" acha "Vôlei"; "mutirao" acha "Mutirão"). Usa a extensão `unaccent` do PostgreSQL.
+- **Várias palavras:** cada palavra precisa aparecer em algum dos campos pesquisados (título, descrição, modalidade, responsável, local, objetivo ecológico, praia e município). Assim, "futevolei itapua" traz só o futevôlei de Itapuã.
+- **Praias:** a resposta inclui as praias cujo nome, município ou descrição combinam com a busca, com a balneabilidade de cada uma. A lista não aparece quando há filtro de praia ou de categoria.
+- **Nenhum resultado:** a resposta traz `sugestoes`:
+  - `termos`: até 3 termos existentes parecidos com o digitado (praias, municípios, modalidades e palavras dos títulos), para corrigir erros de digitação. Por exemplo, "surff" sugere "Surf" e "camburri" sugere "Camburi". Usa a extensão `pg_trgm`.
+  - `semFiltros`: quando há outros filtros ativos, quantos resultados existiriam só com a busca.
+- **Curingas:** `%` e `_` digitados são buscados como texto comum.
 
 ### Autenticação e perfil do organizador (PBI-11)
 
@@ -248,11 +259,12 @@ A carga inicial inclui casos para demonstração: praias com boletim vencido (Me
 | **PBI-09** Filtrar Conteúdo por Categoria e Praia | Aba **Explorar** (`/explorar`) e botão "Explorar atividades nesta praia" na página de cada praia | Filtros combinados de categoria (uma ou várias), município, praia, modalidade, período ("Hoje", "Neste fim de semana", "Próximos 7/30 dias" ou datas escolhidas) e "só praias próprias para banho". A lista se atualiza a cada mudança, sem botão de buscar, e mostra o número de resultados; os resultados anteriores continuam visíveis enquanto a nova busca carrega. Os resultados vêm agrupados por categoria, com a contagem de cada uma. Ao escolher uma praia, aparece a balneabilidade dela. Os filtros ficam na URL, então o link pode ser compartilhado e o "voltar" do navegador funciona. Há um botão "Limpar filtros", e uma mensagem com esse mesmo botão quando nada é encontrado. Com o banco local, a busca responde em cerca de 50 ms |
 | **PBI-10** Demonstrar Interesse ou Inscrever-se | Página de cada aula, evento ou ação, e **Minha área → Inscritos** | Coleta nome e e-mail ou WhatsApp, com validação no navegador e na API e consentimento obrigatório para enviar o contato ao organizador. A confirmação aparece na tela, com o número de inscritos e as vagas restantes, e o contador do card é recarregado na hora. Os cards de aulas, eventos e ações mostram o contador de interessados, inscritos ou voluntários. Os eventos mostram as vagas disponíveis e "Vagas esgotadas" quando lotam, e aí o formulário some; o mesmo acontece em atividades canceladas ou já realizadas. Inscrição duplicada é recusada. O organizador dono vê a lista de inscritos, com links para e-mail ou WhatsApp e um botão para copiar os contatos. A rota `/api/metricas` acompanha a meta de 100 inscrições do MVP |
 | **PBI-12** Atualizar Status ou Cancelar Atividade | **Minha área → Status**, ou "Adiar ou cancelar" na página da atividade (`/minha-area/status/:id`) | O organizador dono altera o status para "Adiado" ou "Cancelado", com um aviso obrigatório aos participantes, ou reativa uma atividade adiada. Para cancelar, é preciso confirmar que a ação é definitiva. A notificação visual aparece nas listagens (abas, Explorar e página da praia) e na página da atividade: o selo "Adiado" ou "Cancelado" e uma faixa colorida com o aviso. Atividades canceladas não aceitam inscrições nem edição. Os inscritos com e-mail recebem o aviso, com novas tentativas em caso de falha temporária. Os eventos adiado e cancelado da carga inicial já trazem avisos |
+| **PBI-13** Pesquisa Textual por Palavra-Chave | Campo **Buscar** no topo de todas as páginas e na aba **Explorar** | A busca é parcial e não diferencia maiúsculas nem acentos. Combina com os filtros do PBI-09 e atualiza os resultados depois de uma pausa na digitação. Além das atividades, mostra as praias encontradas. Quando nada é encontrado, exibe "Nenhum resultado para '…'" com sugestões clicáveis ("Você quis dizer: Surf") e, se houver outros filtros ativos, o botão "Buscar '…' sem os outros filtros (N resultados)". Sem sugestões, dá dicas de como buscar |
 | **PBI-11** Autenticação e Perfil do Organizador | **Área do organizador** no topo (`/entrar`, `/criar-conta`, `/minha-area`) | Login por e-mail e senha, com validação no navegador e na API e mensagem única para credenciais erradas. Cadastro de conta. Recuperação de senha funcional: o link chega por e-mail (Mailpit no Docker), vale 60 minutos e só pode ser usado uma vez; ao redefinir, todas as sessões são encerradas. Na **Minha área**, o organizador gerencia as próprias aulas (publicadas ou aguardando aprovação), edita o perfil e troca a senha. As rotas da área do organizador mandam para o login quando não há sessão e voltam à página pedida depois |
 
-> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento`, `limite_vagas`, `inscritos`, `aviso_status` e `status_alterado_em`. A tabela `inscricao` ganhou a coluna `contato_normalizado` e uma restrição de unicidade. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
+> O esquema do banco mudou (incluindo um índice novo para os filtros do PBI-09 e as extensões `unaccent` e `pg_trgm` do PBI-13): há as tabelas `organizador`, `sessao` e `recuperacao_senha`, e a tabela `atividade` ganhou as colunas `publicada`, `organizador_id`, `atualizado_em`, `apoio_local`, `regulamento`, `limite_vagas`, `inscritos`, `aviso_status` e `status_alterado_em`. A tabela `inscricao` ganhou a coluna `contato_normalizado` e uma restrição de unicidade. Para quem já tinha o banco criado: `docker compose down -v && docker compose up -d --build`.
 
-Ficam para as próximas sprints: busca textual global (PBI-13) e feedback (PBI-14).
+Fica para a próxima sprint: feedback (PBI-14).
 
 ## Documentação
 

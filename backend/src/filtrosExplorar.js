@@ -1,6 +1,8 @@
 // PBI-09: filtros combinados da busca de atividades (categoria + praia + município + modalidade + período).
+// PBI-13: + pesquisa textual por palavra-chave (parâmetro "busca").
 // Converte a query string em condições SQL parametrizadas, ou devolve { erro } se algum filtro for inválido.
 import { DIAS_LIMITE_ATUALIZACAO } from './balneabilidade.js';
+import { condicoesBusca, lerBusca } from './busca.js';
 import { DIAS_SEMANA } from './validacaoAula.js';
 
 export const TIPOS = ['AULA', 'EVENTO', 'ACAO_COMUNITARIA'];
@@ -47,6 +49,11 @@ export function montarFiltros(query = {}) {
   }
   const tipos = categorias.length ? [...new Set(categorias)] : TIPOS;
   filtros.push(`a.tipo = ANY(${p(tipos)}::tipo_atividade[])`);
+
+  // PBI-13: palavras-chave (parcial, sem diferenciar maiúsculas e acentos).
+  const busca = lerBusca(query.busca);
+  if (busca.erro) return { erro: busca.erro };
+  filtros.push(...condicoesBusca(busca.palavras, p));
 
   // Eventos e ações: só os próximos (a partir de hoje), como nas abas de consulta.
   filtros.push("(a.tipo = 'AULA' OR a.data_inicio >= date_trunc('day', NOW()))");
@@ -105,5 +112,5 @@ export function montarFiltros(query = {}) {
     )`);
   }
 
-  return { filtros, parametros, tipos };
+  return { filtros, parametros, tipos, busca };
 }

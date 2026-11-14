@@ -20,6 +20,7 @@ import MinhaAreaPage from './pages/MinhaAreaPage.jsx';
 import InscritosPage from './pages/InscritosPage.jsx';
 import AlterarStatusPage from './pages/AlterarStatusPage.jsx';
 import { RotaProtegida, useSessao } from './sessao.jsx';
+import BuscaGlobal from './components/BuscaGlobal.jsx';
 
 const ABAS = [
   { para: '/praias', rotulo: 'Praias' },
@@ -48,6 +49,8 @@ export default function App() {
           <NavLink to="/praias" className="marca">
             <span aria-hidden="true">🌊</span> GoBeach
           </NavLink>
+          {/* PBI-13 */}
+          <BuscaGlobal />
           <div className="topo__direita">
             <span className="topo__regiao">Grande Vitória · ES</span>
             <AcessoOrganizador />

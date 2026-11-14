@@ -1,4 +1,8 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-12)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-13)
+
+-- PBI-13: busca textual sem diferenciar acentos (unaccent) e sugestões por semelhança (pg_trgm)
+CREATE EXTENSION IF NOT EXISTS unaccent;
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
