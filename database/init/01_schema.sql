@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-11)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 a PBI-12)
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
@@ -70,6 +70,9 @@ CREATE TABLE atividade (
     responsavel         VARCHAR(120) NOT NULL,   -- instrutor, organizador ou ONG
     contato             VARCHAR(120),
     status              status_atividade NOT NULL DEFAULT 'ATIVO',
+    -- PBI-12: aviso do organizador ao adiar/cancelar (exibido nas listagens) e quando o status mudou
+    aviso_status        VARCHAR(300),
+    status_alterado_em  TIMESTAMPTZ,
     modalidade          VARCHAR(60),             -- aulas e eventos
     local_detalhe       VARCHAR(160),            -- local exato na praia / ponto de encontro
     -- Aulas: recorrentes
@@ -109,6 +112,8 @@ CREATE TABLE atividade (
                              -- COALESCE: sem ele, FALSE OR NULL = NULL e o CHECK deixaria passar
                              AND (gratuito OR COALESCE(valor_inscricao, 0) > 0))
     ),
+    -- PBI-12: adiar ou cancelar exige um aviso para quem acompanha a atividade
+    CONSTRAINT aviso_ao_mudar_status CHECK (status = 'ATIVO' OR aviso_status IS NOT NULL),
     CONSTRAINT inscritos_dentro_do_limite CHECK (
         inscritos >= 0 AND (limite_vagas IS NULL OR inscritos <= limite_vagas)
     ),

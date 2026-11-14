@@ -120,6 +120,20 @@ describe('api', () => {
     expect(JSON.parse(opcoes.body)).toEqual({ nome: 'Bia', contato: 'bia@exemplo.com', consentimento: true });
   });
 
+  test('alterarStatus envia PATCH com status e aviso (PBI-12)', async () => {
+    const fetch = vi.fn(async () => respostaJson({}));
+    vi.stubGlobal('fetch', fetch);
+    configurarSessao({ token: 'tok' });
+
+    await api.alterarStatus(60, 'CANCELADO', 'Sem licença.');
+
+    const [url, opcoes] = fetch.mock.calls[0];
+    expect(url).toBe('/api/atividades/60/status');
+    expect(opcoes.method).toBe('PATCH');
+    expect(opcoes.headers.Authorization).toBe('Bearer tok');
+    expect(JSON.parse(opcoes.body)).toEqual({ status: 'CANCELADO', aviso: 'Sem licença.' });
+  });
+
   test('consultas públicas não enviam o token', async () => {
     const fetch = vi.fn(async () => respostaJson({}));
     vi.stubGlobal('fetch', fetch);

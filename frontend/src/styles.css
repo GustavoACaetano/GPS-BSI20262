@@ -961,3 +961,57 @@ a {
 .tabela-rolagem {
   overflow-x: auto;
 }
+
+/* PBI-12: aviso de adiamento/cancelamento */
+.aviso-status {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border-left: 4px solid;
+}
+
+.aviso-status--adiado {
+  background: #ffedd5;
+  border-color: #c2410c;
+  color: #7c2d12;
+}
+
+.aviso-status--cancelado {
+  background: var(--cor-impropria-fundo);
+  border-color: var(--cor-impropria);
+  color: #7f1d1d;
+}
+
+.acoes-dono {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+}
+
+.opcoes--coluna {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.opcao small {
+  display: block;
+  color: var(--cor-texto-suave);
+  font-weight: 400;
+}
+
+.opcao--bloco {
+  align-items: flex-start;
+}
+
+.opcao--bloco input {
+  margin-top: 4px;
+}
+
+.botao--perigo {
+  background: var(--cor-impropria);
+}
+
+.botao--perigo:hover {
+  background: #991b1b;
+}

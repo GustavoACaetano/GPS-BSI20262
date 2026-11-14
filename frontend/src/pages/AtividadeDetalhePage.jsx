@@ -58,10 +58,16 @@ export default function AtividadeDetalhePage() {
           {atividade.responsavel}
           {atividade.contato && <> · {atividade.contato}</>}
         </p>
-        {EDICAO[atividade.tipo] && organizador && atividade.organizadorId === organizador.id && (
-          <Link to={`/${EDICAO[atividade.tipo][0]}/${atividade.id}/editar`} className="link-editar">
-            {EDICAO[atividade.tipo][1]}
-          </Link>
+        {organizador && atividade.organizadorId === organizador.id && atividade.status !== 'CANCELADO' && (
+          <div className="acoes-dono">
+            <Link to={`/${EDICAO[atividade.tipo][0]}/${atividade.id}/editar`} className="link-editar">
+              {EDICAO[atividade.tipo][1]}
+            </Link>
+            {/* PBI-12 */}
+            <Link to={`/minha-area/status/${atividade.id}`} className="link-editar">
+              Adiar ou cancelar
+            </Link>
+          </div>
         )}
       </section>
 

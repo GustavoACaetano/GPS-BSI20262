@@ -4,6 +4,7 @@ import { validarAula } from '../validacaoAula.js';
 import { validarAcao } from '../validacaoAcao.js';
 import { validarEvento } from '../validacaoEvento.js';
 import { montarFiltros, TIPOS } from '../filtrosExplorar.js';
+import { notificarInscritos } from '../notificacoes.js';
 import { exigirLogin } from '../autenticacao.js';
 import { mesmoSegredo } from '../seguranca.js';
 
@@ -40,6 +41,9 @@ function formatarAtividade(linha) {
     titulo: linha.titulo,
     descricao: linha.descricao,
     status: linha.status,
+    // PBI-12: aviso do organizador ao adiar/cancelar
+    avisoStatus: linha.aviso_status ?? null,
+    statusAlteradoEm: linha.status_alterado_em ? new Date(linha.status_alterado_em).toISOString() : null,
     responsavel: linha.responsavel,
     contato: linha.contato,
     praia: { id: linha.praia_id, nome: linha.praia_nome, municipio: linha.praia_municipio },
@@ -320,7 +324,7 @@ for (const cadastro of CADASTROS) {
       const id = lerId(req, res);
       if (id === null) return;
 
-      const existente = await query('SELECT tipo, organizador_id FROM atividade WHERE id = $1', [id]);
+      const existente = await query('SELECT tipo, organizador_id, status FROM atividade WHERE id = $1', [id]);
       if (existente.rowCount === 0 || existente.rows[0].tipo !== tipo) {
         return res.status(404).json({ erro: cadastro.naoEncontrada });
       }
@@ -330,6 +334,10 @@ for (const cadastro of CADASTROS) {
         });
       }
 
+      if (existente.rows[0].status === 'CANCELADO') {
+        return res.status(409).json({ erro: 'Atividades canceladas não podem ser editadas.' });
+      }
+
       const { dados, campos } = cadastro.validar(req.body);
       if (campos) return responderInvalido(res, campos);
 
@@ -337,7 +345,7 @@ for (const cadastro of CADASTROS) {
         SQL_COM_PRAIA(`
           UPDATE atividade
           SET (${colunas.join(', ')}, atualizado_em) = (${marcadores(n)}, NOW())
-          WHERE id = $${n + 1} AND organizador_id = $${n + 2}
+          WHERE id = $${n + 1} AND organizador_id = $${n + 2} AND status <> 'CANCELADO'
           RETURNING *
         `),
         [...cadastro.valores(dados), id, req.organizador.id],
@@ -358,6 +366,83 @@ for (const cadastro of CADASTROS) {
     }
   });
 }
+
+// ---------------------------------------------------------------------------
+// PBI-12: Atualizar Status ou Cancelar Atividade
+// PATCH /api/atividades/:id/status  { status: 'ATIVO' | 'ADIADO' | 'CANCELADO', aviso }
+//   - só o organizador dono; adiar/cancelar exige um aviso (5 a 300 caracteres);
+//   - o cancelamento é definitivo; atividades já realizadas não mudam de status;
+//   - ADIADO -> ATIVO reativa (ex.: depois de definir a nova data na edição).
+// Inscritos com e-mail recebem o aviso em segundo plano.
+// ---------------------------------------------------------------------------
+export const STATUS = ['ATIVO', 'ADIADO', 'CANCELADO'];
+
+router.patch('/:id/status', exigirLogin, async (req, res, next) => {
+  try {
+    const id = lerId(req, res);
+    if (id === null) return;
+
+    const status = req.body?.status;
+    if (!STATUS.includes(status)) {
+      return responderInvalido(res, { status: `Escolha um status: ${STATUS.join(', ')}.` });
+    }
+    const aviso = typeof req.body?.aviso === 'string' ? req.body.aviso.trim() : '';
+    if (status !== 'ATIVO' && (aviso.length < 5 || aviso.length > 300)) {
+      return responderInvalido(res, {
+        aviso: 'Escreva um aviso para os participantes (de 5 a 300 caracteres), por exemplo o motivo e a nova data.',
+      });
+    }
+
+    const atual = await query(
+      `SELECT tipo, status, organizador_id, (tipo <> 'AULA' AND data_inicio <= NOW()) AS realizada
+       FROM atividade WHERE id = $1`,
+      [id],
+    );
+    const a = atual.rows[0];
+    if (!a) return res.status(404).json({ erro: 'Atividade não encontrada.' });
+    if (a.organizador_id !== req.organizador.id) {
+      return res.status(403).json({ erro: 'Só o organizador que cadastrou a atividade pode alterar o status.' });
+    }
+    if (a.status === 'CANCELADO') {
+      return res.status(409).json({ erro: 'O cancelamento é definitivo: a atividade não pode ser reativada.' });
+    }
+    if (a.realizada) {
+      return res.status(409).json({ erro: 'A atividade já aconteceu; o status não pode mais ser alterado.' });
+    }
+    if (status === 'ATIVO' && a.status === 'ATIVO') {
+      return res.status(409).json({ erro: 'A atividade já está ativa.' });
+    }
+
+    const resultado = await query(
+      SQL_COM_PRAIA(`
+        UPDATE atividade
+        SET status = $1, aviso_status = $2, status_alterado_em = NOW()
+        WHERE id = $3 AND organizador_id = $4 AND status <> 'CANCELADO'
+        RETURNING *
+      `),
+      [status, status === 'ATIVO' ? null : aviso, id, req.organizador.id],
+    );
+    if (resultado.rowCount === 0) {
+      return res.status(409).json({ erro: 'O cancelamento é definitivo: a atividade não pode ser reativada.' });
+    }
+    const atividade = formatarDoDono(resultado.rows[0]);
+
+    // Avisa por e-mail quem se inscreveu (só quando a notícia muda: adiamento/cancelamento ou novo aviso).
+    let avisados = 0;
+    if (status !== 'ATIVO') {
+      const inscritos = await query('SELECT nome, contato FROM inscricao WHERE atividade_id = $1', [id]);
+      const comEmail = inscritos.rows.filter((i) => i.contato.includes('@'));
+      avisados = comEmail.length;
+      notificarInscritos(atividade, status, aviso, comEmail).catch((erro) =>
+        console.error('Falha ao avisar inscritos:', erro),
+      );
+    }
+
+    res.json({ atividade, avisados });
+  } catch (erro) {
+    next(erro);
+  }
+});
 
 // PATCH /api/atividades/:id/publicacao  { publicada: true|false }  (cabeçalho X-Admin-Token)
 router.patch('/:id/publicacao', async (req, res, next) => {

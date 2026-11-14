@@ -71,33 +71,37 @@ JOIN praia p ON p.nome = a.praia;
 
 -- PBI-04: eventos esportivos (inclui um adiado e um cancelado)
 -- PBI-07: com regulamento e limite de vagas (NULL = sem limite)
+-- PBI-12: o adiado e o cancelado trazem o aviso do organizador
 INSERT INTO atividade (tipo, titulo, descricao, praia_id, responsavel, contato, modalidade,
                        local_detalhe, data_inicio, gratuito, valor_inscricao, status,
-                       regulamento, limite_vagas)
+                       regulamento, limite_vagas, aviso_status, status_alterado_em)
 SELECT 'EVENTO', e.titulo, e.descricao, p.id, e.responsavel, e.contato, e.modalidade,
        e.local_detalhe, date_trunc('day', NOW()) + e.dias * INTERVAL '1 day' + INTERVAL '9 hours',
-       e.gratuito, e.valor, e.status::status_atividade, e.regulamento, e.vagas
+       e.gratuito, e.valor, e.status::status_atividade, e.regulamento, e.vagas,
+       e.aviso, CASE WHEN e.aviso IS NOT NULL THEN NOW() - INTERVAL '2 days' END
 FROM (VALUES
     ('Circuito Capixaba de Surf - Etapa Serra', 'Etapa estadual nas categorias open e júnior.', 'Jacaraípe',
      'Federação de Surf do ES', 'contato@fesurf.org', 'Surf', 'Pico da Pedra da Baleia', 12, FALSE, 80.00, 'ATIVO',
-     E'Categorias open (18+) e júnior (até 17 anos, com autorização dos responsáveis).\nBaterias de 20 minutos, valem as 2 melhores ondas.\nUso obrigatório de lycra de identificação fornecida pela organização.', 64),
+     E'Categorias open (18+) e júnior (até 17 anos, com autorização dos responsáveis).\nBaterias de 20 minutos, valem as 2 melhores ondas.\nUso obrigatório de lycra de identificação fornecida pela organização.', 64, NULL),
     ('Torneio de Futevôlei de Verão', 'Duplas mistas, chaves por nível.', 'Itapuã',
      'Liga Vilavelhense de Futevôlei', '(27) 98888-0001', 'Futevôlei', 'Arena montada no posto 4', 5, FALSE, 40.00, 'ATIVO',
-     E'Inscrição por dupla mista.\nJogos em set único de 18 pontos; final em melhor de 3.\nApresentar-se 30 minutos antes do primeiro jogo.', 32),
+     E'Inscrição por dupla mista.\nJogos em set único de 18 pontos; final em melhor de 3.\nApresentar-se 30 minutos antes do primeiro jogo.', 32, NULL),
     ('Vôlei de Praia Open Camburi', 'Torneio aberto ao público.', 'Camburi',
      'Associação Camburi Esportes', '(27) 98888-0002', 'Vôlei de praia', 'Quadras da Praça do Cauê', 3, TRUE, NULL, 'ATIVO',
-     E'Duplas livres, sem restrição de categoria.\nSets de 21 pontos.\nChaveamento sorteado no dia, às 8h30.', NULL),
+     E'Duplas livres, sem restrição de categoria.\nSets de 21 pontos.\nChaveamento sorteado no dia, às 8h30.', NULL, NULL),
     ('Travessia a Nado Praia da Costa', 'Prova de 1,5 km em mar aberto.', 'Praia da Costa',
      'Clube Aquático VV', 'nado@clubevv.org', 'Natação em águas abertas', 'Largada em frente ao Clube Libanês', 20, FALSE, 60.00, 'ADIADO',
-     E'Idade mínima de 16 anos.\nObrigatório atestado médico e touca da organização.\nTempo limite de 60 minutos.', 150),
+     E'Idade mínima de 16 anos.\nObrigatório atestado médico e touca da organização.\nTempo limite de 60 minutos.', 150,
+     'Adiada por causa da ressaca prevista pela Marinha. A nova data será divulgada em breve.'),
     ('Corrida na Areia Guarapari', 'Percurso de 5 km pela orla.', 'Praia do Morro',
      'Guarapari Run', '(27) 98888-0003', 'Corrida', 'Largada na Praça do Morro', 8, TRUE, NULL, 'CANCELADO',
-     E'Percurso de 5 km em areia fofa e batida.\nKit com número de peito retirado no local.', 300),
+     E'Percurso de 5 km em areia fofa e batida.\nKit com número de peito retirado no local.', 300,
+     'Cancelada por falta de autorização da prefeitura para o uso da orla.'),
     ('Festival de Stand Up Paddle', 'Provas de velocidade e passeio.', 'Curva da Jurema',
      'SUP Vitória', '(27) 98888-0004', 'Stand Up Paddle', 'Píer da Curva da Jurema', 15, TRUE, NULL, 'ATIVO',
-     E'Uso obrigatório de colete salva-vidas e leash.\nProva de velocidade de 400 m e passeio livre.\nPranchas podem ser emprestadas pela organização (sujeito à disponibilidade).', 40)
+     E'Uso obrigatório de colete salva-vidas e leash.\nProva de velocidade de 400 m e passeio livre.\nPranchas podem ser emprestadas pela organização (sujeito à disponibilidade).', 40, NULL)
 ) AS e (titulo, descricao, praia, responsavel, contato, modalidade, local_detalhe, dias, gratuito, valor, status,
-        regulamento, vagas)
+        regulamento, vagas, aviso)
 JOIN praia p ON p.nome = e.praia;
 
 -- PBI-05: ações comunitárias (PBI-08: com apoio local)

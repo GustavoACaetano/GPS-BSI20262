@@ -63,6 +63,15 @@ describe('AulaCard', () => {
     expect(screen.queryByText('Ver Detalhes e Inscrição')).not.toBeInTheDocument();
   });
 
+  test('mostra o aviso do organizador quando adiada ou cancelada (PBI-12)', () => {
+    const { unmount } = renderizar(<AulaCard aula={aula({ status: 'ADIADO', avisoStatus: 'Mar agitado; volta semana que vem.' })} />);
+    expect(screen.getByRole('note')).toHaveTextContent('Adiado: Mar agitado; volta semana que vem.');
+    expect(screen.getByRole('note')).toHaveClass('aviso-status--adiado');
+    unmount();
+    renderizar(<AulaCard aula={aula()} />);
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+
   test('aula cancelada fica marcada como inativa', () => {
     renderizar(<AulaCard aula={aula({ status: 'CANCELADO' })} />);
     expect(screen.getByRole('article')).toHaveClass('card--inativa');

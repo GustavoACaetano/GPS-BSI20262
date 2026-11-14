@@ -73,7 +73,13 @@ function SecaoPublicacoes({ secao, dados }) {
                   <SeloStatus status={item.status} />
                   {item.publicada && <Link to={`/atividades/${item.id}`}>Ver</Link>}
                   <Link to={`/minha-area/inscritos/${item.id}`}>Inscritos ({item.interessados ?? 0})</Link>
-                  {!encerrada && <Link to={`/${secao.caminho}/${item.id}/editar`}>Editar</Link>}
+                  {!encerrada && item.status !== 'CANCELADO' && (
+                    <>
+                      <Link to={`/${secao.caminho}/${item.id}/editar`}>Editar</Link>
+                      {/* PBI-12 */}
+                      <Link to={`/minha-area/status/${item.id}`}>Status</Link>
+                    </>
+                  )}
                 </div>
               </li>
             );

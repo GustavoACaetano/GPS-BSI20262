@@ -63,6 +63,8 @@ export const api = {
   inscrever: (id, dados) => enviar('POST', `/atividades/${id}/inscricoes`, dados),
   listarInscritos: (id) => get(`/atividades/minhas/${id}/inscricoes`, {}, { autenticado: true }),
   obterMetricas: () => get('/metricas'),
+  // PBI-12 (exige login)
+  alterarStatus: (id, status, aviso) => enviar('PATCH', `/atividades/${id}/status`, { status, aviso }),
   // PBI-06 (exige login)
   cadastrarAula: (aula) => enviar('POST', '/atividades/aulas', aula),
   editarAula: (id, aula) => enviar('PUT', `/atividades/aulas/${id}`, aula),

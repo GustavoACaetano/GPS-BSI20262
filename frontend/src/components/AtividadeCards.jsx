@@ -2,12 +2,26 @@ import { Link } from 'react-router-dom';
 import SeloStatus from './SeloStatus.jsx';
 import { formatarDataEvento, formatarMoeda } from '../formatacao.js';
 
+// PBI-12: aviso do organizador quando a atividade é adiada ou cancelada.
+export function AvisoStatus({ atividade }) {
+  if (atividade.status === 'ATIVO' || !atividade.status) return null;
+  const rotulo = atividade.status === 'ADIADO' ? 'Adiado' : 'Cancelado';
+  return (
+    <p className={`aviso-status aviso-status--${atividade.status.toLowerCase()}`} role="note">
+      <strong>{rotulo}:</strong> {atividade.avisoStatus || 'o organizador alterou o status desta atividade.'}
+    </p>
+  );
+}
+
 function Cabecalho({ atividade, rotulo }) {
   return (
-    <div className="card__cabecalho">
-      <span className="rotulo">{rotulo}</span>
-      <SeloStatus status={atividade.status} />
-    </div>
+    <>
+      <div className="card__cabecalho">
+        <span className="rotulo">{rotulo}</span>
+        <SeloStatus status={atividade.status} />
+      </div>
+      <AvisoStatus atividade={atividade} />
+    </>
   );
 }
 
