@@ -744,3 +744,88 @@ a {
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+/* PBI-11: acesso do organizador, telas de conta e Minha área */
+.topo__direita {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topo__acesso {
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 999px;
+  padding: 6px 12px;
+  white-space: nowrap;
+  display: inline-flex;
+  gap: 4px;
+  max-width: 220px;
+}
+
+.topo__acesso:hover,
+.topo__acesso.active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.topo__nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 480px) {
+  .topo__regiao {
+    display: none;
+  }
+}
+
+.conta {
+  max-width: 480px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.texto-sucesso {
+  color: var(--cor-propria);
+  font-weight: 600;
+  margin: 0;
+}
+
+.minhas {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0 0;
+}
+
+.minhas li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 0;
+  border-top: 1px solid var(--cor-borda);
+}
+
+.minhas li > div:first-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.minhas__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+
+.painel .titulo-pagina--acao h2 {
+  margin: 0;
+}

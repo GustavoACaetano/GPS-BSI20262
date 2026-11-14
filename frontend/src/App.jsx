@@ -7,6 +7,12 @@ import AcoesPage from './pages/AcoesPage.jsx';
 import AtividadeDetalhePage from './pages/AtividadeDetalhePage.jsx';
 import CadastrarAulaPage from './pages/CadastrarAulaPage.jsx';
 import EditarAulaPage from './pages/EditarAulaPage.jsx';
+import EntrarPage from './pages/EntrarPage.jsx';
+import CriarContaPage from './pages/CriarContaPage.jsx';
+import RecuperarSenhaPage from './pages/RecuperarSenhaPage.jsx';
+import RedefinirSenhaPage from './pages/RedefinirSenhaPage.jsx';
+import MinhaAreaPage from './pages/MinhaAreaPage.jsx';
+import { RotaProtegida, useSessao } from './sessao.jsx';
 
 const ABAS = [
   { para: '/praias', rotulo: 'Praias' },
@@ -14,6 +20,17 @@ const ABAS = [
   { para: '/eventos', rotulo: 'Eventos' },
   { para: '/acoes', rotulo: 'Ações' },
 ];
+
+function AcessoOrganizador() {
+  const { organizador } = useSessao();
+  return organizador ? (
+    <NavLink to="/minha-area" className="topo__acesso" title="Minha área">
+      <span aria-hidden="true">👤</span> <span className="topo__nome">{organizador.nome}</span>
+    </NavLink>
+  ) : (
+    <NavLink to="/entrar" className="topo__acesso">Área do organizador</NavLink>
+  );
+}
 
 export default function App() {
   return (
@@ -23,7 +40,10 @@ export default function App() {
           <NavLink to="/praias" className="marca">
             <span aria-hidden="true">🌊</span> GoBeach
           </NavLink>
-          <span className="topo__regiao">Grande Vitória · ES</span>
+          <div className="topo__direita">
+            <span className="topo__regiao">Grande Vitória · ES</span>
+            <AcessoOrganizador />
+          </div>
         </div>
         <nav className="abas" aria-label="Categorias">
           <div className="container abas__lista">
@@ -46,8 +66,13 @@ export default function App() {
           <Route path="/praias" element={<PraiasPage />} />
           <Route path="/praias/:id" element={<PraiaDetalhePage />} />
           <Route path="/aulas" element={<AulasPage />} />
-          <Route path="/aulas/nova" element={<CadastrarAulaPage />} />
-          <Route path="/aulas/:id/editar" element={<EditarAulaPage />} />
+          <Route path="/aulas/nova" element={<RotaProtegida><CadastrarAulaPage /></RotaProtegida>} />
+          <Route path="/aulas/:id/editar" element={<RotaProtegida><EditarAulaPage /></RotaProtegida>} />
+          <Route path="/entrar" element={<EntrarPage />} />
+          <Route path="/criar-conta" element={<CriarContaPage />} />
+          <Route path="/recuperar-senha" element={<RecuperarSenhaPage />} />
+          <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
+          <Route path="/minha-area" element={<RotaProtegida><MinhaAreaPage /></RotaProtegida>} />
           <Route path="/eventos" element={<EventosPage />} />
           <Route path="/acoes" element={<AcoesPage />} />
           <Route path="/atividades/:id" element={<AtividadeDetalhePage />} />

@@ -1,7 +1,8 @@
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Router } from 'express';
 import { query } from '../db.js';
 import { validarAula } from '../validacaoAula.js';
+import { exigirLogin } from '../autenticacao.js';
+import { mesmoSegredo } from '../seguranca.js';
 
 const router = Router();
 
@@ -41,6 +42,7 @@ function formatarAtividade(linha) {
     praia: { id: linha.praia_id, nome: linha.praia_nome, municipio: linha.praia_municipio },
     localDetalhe: linha.local_detalhe,
     interessados: linha.interessados,
+    organizadorId: linha.organizador_id ?? null,
   };
 
   if (linha.tipo === 'AULA') {
@@ -72,6 +74,9 @@ function formatarAtividade(linha) {
     recomendacoes: linha.recomendacoes,
   };
 }
+
+// Visão do dono: inclui a situação de publicação.
+const formatarDoDono = (linha) => ({ ...formatarAtividade(linha), publicada: linha.publicada });
 
 // PBI-03/04/05: GET /api/atividades?tipo=AULA|EVENTO|ACAO_COMUNITARIA&ordenar=&praia=
 // Somente leitura: usuários não autenticados apenas consultam (PBI-04, critério 3).
@@ -125,6 +130,38 @@ function lerId(req, res) {
   return id;
 }
 
+// PBI-11: GET /api/atividades/minhas — publicações do organizador logado (inclusive pendentes)
+router.get('/minhas', exigirLogin, async (req, res, next) => {
+  try {
+    const resultado = await query(
+      `${SQL_ATIVIDADE} WHERE a.organizador_id = $1 ORDER BY a.tipo, a.titulo`,
+      [req.organizador.id],
+    );
+    res.json({ dados: resultado.rows.map(formatarDoDono), total: resultado.rowCount });
+  } catch (erro) {
+    next(erro);
+  }
+});
+
+// PBI-11: GET /api/atividades/minhas/:id — usada na tela de edição (inclusive pendentes)
+router.get('/minhas/:id', exigirLogin, async (req, res, next) => {
+  try {
+    const id = lerId(req, res);
+    if (id === null) return;
+
+    const resultado = await query(`${SQL_ATIVIDADE} WHERE a.id = $1 AND a.organizador_id = $2`, [
+      id,
+      req.organizador.id,
+    ]);
+    if (resultado.rowCount === 0) {
+      return res.status(404).json({ erro: 'Publicação não encontrada entre as suas.' });
+    }
+    res.json(formatarDoDono(resultado.rows[0]));
+  } catch (erro) {
+    next(erro);
+  }
+});
+
 // GET /api/atividades/:id (somente atividades publicadas)
 router.get('/:id', async (req, res, next) => {
   try {
@@ -142,22 +179,12 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // ---------------------------------------------------------------------------
-// PBI-06: Cadastrar e Publicar Aulas Esportivas
+// PBI-06: Cadastrar e Publicar Aulas Esportivas (exige login do PBI-11)
 //
-// Até a autenticação do PBI-11, quem cadastra recebe um código de edição secreto
-// (só o hash fica no banco) e precisa dele para alterar a aula depois.
+// A aula pertence ao organizador que a cadastrou; só ele pode editá-la.
 // Com MODERAR_CADASTROS=true, novas aulas ficam ocultas até aprovação por quem
 // tem o ADMIN_TOKEN; caso contrário, são publicadas imediatamente.
 // ---------------------------------------------------------------------------
-
-const hashToken = (token) => createHash('sha256').update(token).digest('hex');
-
-function mesmoSegredo(recebido, esperado) {
-  if (typeof recebido !== 'string' || !recebido || !esperado) return false;
-  const a = Buffer.from(recebido);
-  const b = Buffer.from(esperado);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 const moderacaoAtiva = () => process.env.MODERAR_CADASTROS === 'true';
 
@@ -185,28 +212,21 @@ const SQL_COM_PRAIA = (cte) => `
 `;
 
 // POST /api/atividades/aulas
-router.post('/aulas', async (req, res, next) => {
+router.post('/aulas', exigirLogin, async (req, res, next) => {
   try {
     const { dados, campos } = validarAula(req.body);
     if (campos) return responderInvalido(res, campos);
 
-    const codigoEdicao = randomBytes(16).toString('hex');
-    const publicada = !moderacaoAtiva();
-
     const resultado = await query(
       SQL_COM_PRAIA(`
-        INSERT INTO atividade (tipo, ${CAMPOS_AULA}, publicada, token_edicao_hash)
+        INSERT INTO atividade (tipo, ${CAMPOS_AULA}, publicada, organizador_id)
         VALUES ('AULA', $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
         RETURNING *
       `),
-      [...valoresAula(dados), publicada, hashToken(codigoEdicao)],
+      [...valoresAula(dados), !moderacaoAtiva(), req.organizador.id],
     );
 
-    res.status(201).json({
-      aula: formatarAtividade(resultado.rows[0]),
-      publicada,
-      codigoEdicao,
-    });
+    res.status(201).json(formatarDoDono(resultado.rows[0]));
   } catch (erro) {
     if (erro.code === PRAIA_INEXISTENTE) {
       return responderInvalido(res, { praiaId: 'Praia não encontrada.' });
@@ -215,22 +235,18 @@ router.post('/aulas', async (req, res, next) => {
   }
 });
 
-// PUT /api/atividades/aulas/:id  (cabeçalho X-Codigo-Edicao)
-router.put('/aulas/:id', async (req, res, next) => {
+// PUT /api/atividades/aulas/:id  (somente o organizador dono)
+router.put('/aulas/:id', exigirLogin, async (req, res, next) => {
   try {
     const id = lerId(req, res);
     if (id === null) return;
 
-    const existente = await query(
-      'SELECT tipo, token_edicao_hash FROM atividade WHERE id = $1',
-      [id],
-    );
+    const existente = await query('SELECT tipo, organizador_id FROM atividade WHERE id = $1', [id]);
     if (existente.rowCount === 0 || existente.rows[0].tipo !== 'AULA') {
       return res.status(404).json({ erro: 'Aula não encontrada.' });
     }
-    const codigo = req.get('X-Codigo-Edicao');
-    if (!mesmoSegredo(codigo && hashToken(codigo), existente.rows[0].token_edicao_hash)) {
-      return res.status(403).json({ erro: 'Código de edição inválido.' });
+    if (existente.rows[0].organizador_id !== req.organizador.id) {
+      return res.status(403).json({ erro: 'Só o organizador que cadastrou a aula pode editá-la.' });
     }
 
     const { dados, campos } = validarAula(req.body);
@@ -240,13 +256,13 @@ router.put('/aulas/:id', async (req, res, next) => {
       SQL_COM_PRAIA(`
         UPDATE atividade
         SET (${CAMPOS_AULA}, atualizado_em) = ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-        WHERE id = $11
+        WHERE id = $11 AND organizador_id = $12
         RETURNING *
       `),
-      [...valoresAula(dados), id],
+      [...valoresAula(dados), id, req.organizador.id],
     );
 
-    res.json({ aula: formatarAtividade(resultado.rows[0]) });
+    res.json(formatarDoDono(resultado.rows[0]));
   } catch (erro) {
     if (erro.code === PRAIA_INEXISTENTE) {
       return responderInvalido(res, { praiaId: 'Praia não encontrada.' });

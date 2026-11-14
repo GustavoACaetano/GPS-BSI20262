@@ -3,9 +3,12 @@ import cors from 'cors';
 import { query } from './db.js';
 import praiasRouter from './routes/praias.js';
 import atividadesRouter from './routes/atividades.js';
+import authRouter from './routes/auth.js';
 
 export const app = express();
 
+// Atrás do nginx (rede interna do Docker), req.ip passa a ser o IP real do visitante.
+app.set('trust proxy', 'loopback, uniquelocal');
 app.use(cors());
 app.use(express.json());
 
@@ -20,6 +23,7 @@ app.get('/api/health', async (_req, res) => {
 
 app.use('/api/praias', praiasRouter);
 app.use('/api/atividades', atividadesRouter);
+app.use('/api/auth', authRouter);
 
 app.use('/api', (_req, res) => {
   res.status(404).json({ erro: 'Recurso não encontrado.' });

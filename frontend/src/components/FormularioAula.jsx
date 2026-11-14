@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 import { useDados } from '../hooks.js';
+import { Campo } from './Formulario.jsx';
 
 // PBI-06: formulário de cadastro/edição de aulas, com validação dos campos
 // obrigatórios no navegador e exibição dos erros devolvidos pela API.
@@ -58,25 +59,7 @@ export function validarFormulario(valores) {
   return erros;
 }
 
-function Campo({ id, rotulo, erro, obrigatorio, children, dica }) {
-  return (
-    <div className={`campo${erro ? ' campo--erro' : ''}`}>
-      <label htmlFor={id}>
-        {rotulo}
-        {obrigatorio && <span className="obrigatorio" aria-hidden="true"> *</span>}
-      </label>
-      {children}
-      {dica && !erro && <small className="campo__dica">{dica}</small>}
-      {erro && (
-        <small id={`${id}-erro`} className="campo__erro">
-          {erro}
-        </small>
-      )}
-    </div>
-  );
-}
-
-export default function FormularioAula({ inicial = AULA_VAZIA, rotuloEnviar, aoEnviar, children }) {
+export default function FormularioAula({ inicial = AULA_VAZIA, rotuloEnviar, aoEnviar }) {
   const [valores, setValores] = useState(inicial);
   const [erros, setErros] = useState({});
   const [erroGeral, setErroGeral] = useState(null);
@@ -130,7 +113,6 @@ export default function FormularioAula({ inicial = AULA_VAZIA, rotuloEnviar, aoE
 
   return (
     <form className="formulario" onSubmit={enviar} noValidate>
-      {children}
 
       <fieldset>
         <legend>Sobre a aula</legend>

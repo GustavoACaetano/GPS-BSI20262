@@ -1,22 +1,15 @@
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
-import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { fireEvent, screen } from '@testing-library/react';
 import CadastrarAulaPage from './CadastrarAulaPage.jsx';
 import { api } from '../api.js';
-import { obterCodigoEdicao } from '../codigosEdicao.js';
+import { ORGANIZADOR, renderizar } from '../test/renderizar.jsx';
 
 beforeEach(() => {
-  localStorage.clear();
   vi.spyOn(api, 'listarPraias').mockResolvedValue({ dados: [{ id: 3, nome: 'Camburi', municipio: 'Vitória' }] });
 });
 afterEach(() => vi.restoreAllMocks());
 
-const renderizar = () =>
-  render(
-    <MemoryRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <CadastrarAulaPage />
-    </MemoryRouter>,
-  );
+const abrir = () => renderizar(<CadastrarAulaPage />, { organizador: ORGANIZADOR });
 
 async function cadastrar() {
   await screen.findByRole('option', { name: 'Camburi · Vitória' });
@@ -28,35 +21,34 @@ async function cadastrar() {
   fireEvent.click(screen.getByRole('checkbox', { name: 'Sáb' }));
   preencher('Início', '07:00');
   preencher('Término', '08:30');
-  preencher('Nome do instrutor', 'Ana Lima');
-  preencher('Contato', '(27) 99999-0000');
   fireEvent.click(screen.getByRole('button', { name: 'Publicar aula' }));
 }
 
-test('publicação imediata mostra o código de edição e o link da aula', async () => {
-  vi.spyOn(api, 'cadastrarAula').mockResolvedValue({
-    aula: { id: 20, titulo: 'Surf para iniciantes' },
-    publicada: true,
-    codigoEdicao: 'abc123',
-  });
-  renderizar();
+test('sugere o organizador logado como instrutor e contato', async () => {
+  abrir();
+
+  expect(screen.getByLabelText(/^Nome do instrutor/)).toHaveValue('Ana Lima');
+  expect(screen.getByLabelText(/^Contato/)).toHaveValue('(27) 99999-0000');
+  await screen.findByRole('option', { name: 'Camburi · Vitória' });
+});
+
+test('publicação imediata mostra o link da aula', async () => {
+  const cadastrarAula = vi
+    .spyOn(api, 'cadastrarAula')
+    .mockResolvedValue({ id: 20, titulo: 'Surf para iniciantes', publicada: true });
+  abrir();
 
   await cadastrar();
 
   expect(await screen.findByRole('heading', { name: 'Aula publicada!' })).toBeInTheDocument();
-  expect(screen.getByText('abc123')).toBeInTheDocument();
+  expect(cadastrarAula.mock.calls[0][0]).toMatchObject({ instrutor: 'Ana Lima', praiaId: 3 });
   expect(screen.getByRole('link', { name: 'Ver aula publicada' })).toHaveAttribute('href', '/atividades/20');
-  expect(screen.getByRole('link', { name: 'Editar aula' })).toHaveAttribute('href', '/aulas/20/editar');
-  expect(obterCodigoEdicao(20)).toBe('abc123');
+  expect(screen.getByRole('link', { name: 'Ir para Minha área' })).toHaveAttribute('href', '/minha-area');
 });
 
 test('com moderação, informa que a aula aguarda aprovação', async () => {
-  vi.spyOn(api, 'cadastrarAula').mockResolvedValue({
-    aula: { id: 21, titulo: 'Surf para iniciantes' },
-    publicada: false,
-    codigoEdicao: 'def456',
-  });
-  renderizar();
+  vi.spyOn(api, 'cadastrarAula').mockResolvedValue({ id: 21, titulo: 'Surf para iniciantes', publicada: false });
+  abrir();
 
   await cadastrar();
 

@@ -123,3 +123,13 @@ SELECT a.id, 'Voluntário ' || n, 'voluntario' || n || '@exemplo.com'
 FROM atividade a
 CROSS JOIN LATERAL generate_series(1, 5 + (a.id % 4) * 6) AS n
 WHERE a.tipo = 'ACAO_COMUNITARIA';
+
+-- PBI-11: organizador de demonstração, dono das aulas da carga inicial.
+-- Login: demo@gobeach.dev / senha: gobeach123
+INSERT INTO organizador (nome, email, telefone, senha_hash) VALUES
+    ('Escolas de Praia GoBeach (demo)', 'demo@gobeach.dev', '(27) 99999-0000',
+     'scrypt$6165a94f06462b2ef50c10acf86e730d$4ce9d3815fddee63ec798be9a4b522a75ea80d9442d70d26364f000a2ad90fa709a53d38c244c1a2db43f584f11ac03cae5b2a92a9fbd0cd3c2eebc9c8573489');
+
+UPDATE atividade
+SET organizador_id = (SELECT id FROM organizador WHERE email = 'demo@gobeach.dev')
+WHERE tipo = 'AULA';

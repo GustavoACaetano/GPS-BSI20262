@@ -3,6 +3,7 @@ import { AcaoCard, AulaCard, EventoCard } from '../components/AtividadeCards.jsx
 import { Carregando, Erro } from '../components/Estado.jsx';
 import { api } from '../api.js';
 import { useDados } from '../hooks.js';
+import { useSessao } from '../sessao.jsx';
 
 const VOLTAR = {
   AULA: ['/aulas', 'Todas as aulas'],
@@ -13,6 +14,7 @@ const VOLTAR = {
 export default function AtividadeDetalhePage() {
   const { id } = useParams();
   const { dados: atividade, erro, carregando } = useDados(() => api.obterAtividade(id), [id], 10000);
+  const { organizador } = useSessao();
 
   if (erro) return <Erro erro={erro} />;
   if (carregando && !atividade) return <Carregando />;
@@ -41,9 +43,9 @@ export default function AtividadeDetalhePage() {
           {atividade.responsavel}
           {atividade.contato && <> · {atividade.contato}</>}
         </p>
-        {atividade.tipo === 'AULA' && (
+        {atividade.tipo === 'AULA' && organizador && atividade.organizadorId === organizador.id && (
           <Link to={`/aulas/${atividade.id}/editar`} className="link-editar">
-            É o instrutor? Editar esta aula
+            Editar esta aula
           </Link>
         )}
       </section>

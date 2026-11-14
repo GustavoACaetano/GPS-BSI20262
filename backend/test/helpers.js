@@ -16,11 +16,12 @@ export async function iniciarServidor() {
       headers: corpo === undefined ? cabecalhos : { 'Content-Type': 'application/json', ...cabecalhos },
       body: corpo === undefined ? undefined : typeof corpo === 'string' ? corpo : JSON.stringify(corpo),
     });
-    return { status: resposta.status, corpo: await resposta.json() };
+    const texto = await resposta.text();
+    return { status: resposta.status, corpo: texto ? JSON.parse(texto) : null };
   };
 
   return {
-    get: (caminho) => requisitar('GET', caminho),
+    get: (caminho, cabecalhos) => requisitar('GET', caminho, undefined, cabecalhos),
     post: (caminho, corpo, cabecalhos) => requisitar('POST', caminho, corpo, cabecalhos),
     put: (caminho, corpo, cabecalhos) => requisitar('PUT', caminho, corpo, cabecalhos),
     patch: (caminho, corpo, cabecalhos) => requisitar('PATCH', caminho, corpo, cabecalhos),
@@ -39,3 +40,7 @@ export function mockarBanco(...respostas) {
 }
 
 export const linhas = (rows) => ({ rows, rowCount: rows.length });
+
+// PBI-11: cabeçalho de uma sessão qualquer e a resposta da consulta que a valida.
+export const AUTH = { Authorization: 'Bearer token-de-teste' };
+export const sessaoDe = (organizador) => linhas([organizador]);

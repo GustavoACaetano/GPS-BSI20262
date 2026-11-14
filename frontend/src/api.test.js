@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test, vi } from 'vitest';
-import { api } from './api.js';
+import { api, configurarSessao } from './api.js';
 
 const respostaJson = (corpo, status = 200) => ({
   ok: status >= 200 && status < 300,
@@ -7,7 +7,10 @@ const respostaJson = (corpo, status = 200) => ({
   json: async () => corpo,
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  configurarSessao({ token: null });
+});
 
 describe('api', () => {
   test('monta a URL ignorando parâmetros vazios', async () => {
@@ -62,16 +65,44 @@ describe('api', () => {
     expect(JSON.parse(opcoes.body)).toEqual({ titulo: 'Surf' });
   });
 
-  test('editarAula envia PUT com o código de edição no cabeçalho', async () => {
-    const fetch = vi.fn(async () => respostaJson({ aula: {} }));
+  test('com sessão, envia o token no cabeçalho Authorization', async () => {
+    const fetch = vi.fn(async () => respostaJson({}));
     vi.stubGlobal('fetch', fetch);
+    configurarSessao({ token: 'tok' });
 
-    await api.editarAula(20, { titulo: 'Surf' }, 'segredo');
+    await api.editarAula(20, { titulo: 'Surf' });
+    await api.listarMinhasAtividades();
 
     const [url, opcoes] = fetch.mock.calls[0];
     expect(url).toBe('/api/atividades/aulas/20');
     expect(opcoes.method).toBe('PUT');
-    expect(opcoes.headers['X-Codigo-Edicao']).toBe('segredo');
+    expect(opcoes.headers.Authorization).toBe('Bearer tok');
+    expect(fetch.mock.calls[1]).toEqual(['/api/atividades/minhas', { headers: { Authorization: 'Bearer tok' } }]);
+  });
+
+  test('consultas públicas não enviam o token', async () => {
+    const fetch = vi.fn(async () => respostaJson({}));
+    vi.stubGlobal('fetch', fetch);
+    configurarSessao({ token: 'tok' });
+
+    await api.obterPraia(3);
+
+    expect(fetch).toHaveBeenCalledWith('/api/praias/3');
+  });
+
+  test('401 com sessão aberta avisa que a sessão expirou', async () => {
+    const aoExpirar = vi.fn();
+    configurarSessao({ token: 'tok', aoExpirar });
+    vi.stubGlobal('fetch', vi.fn(async () => respostaJson({ erro: 'Sessão expirada.' }, 401)));
+
+    await expect(api.obterPerfil()).rejects.toThrow('Sessão expirada.');
+    expect(aoExpirar).toHaveBeenCalledTimes(1);
+  });
+
+  test('logout aceita resposta 204 sem corpo', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 204, json: async () => Promise.reject(new Error()) })));
+
+    await expect(api.sair()).resolves.toEqual({});
   });
 
   test('erros de validação trazem os campos inválidos', async () => {

@@ -26,11 +26,28 @@ services:
       PORT: 3000
       MODERAR_CADASTROS: ${MODERAR_CADASTROS:-false}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      # PBI-11: links dos e-mails de recuperação de senha e servidor SMTP
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      SMTP_HOST: ${SMTP_HOST:-mailpit}
+      SMTP_PORT: ${SMTP_PORT:-1025}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      EMAIL_REMETENTE: ${EMAIL_REMETENTE:-GoBeach <nao-responda@gobeach.dev>}
     ports:
       - "${API_PORT:-3000}:3000"
     depends_on:
       db:
         condition: service_healthy
+      mailpit:
+        condition: service_started
+
+  # PBI-11: caixa de e-mail de desenvolvimento; captura os e-mails de recuperação de senha.
+  mailpit:
+    image: axllent/mailpit:v1.21.8
+    container_name: gobeach-mailpit
+    ports:
+      - "${MAIL_WEB_PORT:-8025}:8025"
 
   frontend:
     build: ./frontend

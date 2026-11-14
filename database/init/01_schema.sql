@@ -1,4 +1,4 @@
--- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06)
+-- GoBeach - esquema do banco de dados (Sprint 1: PBI-01 a PBI-05; Sprint 2: PBI-06 e PBI-11)
 
 -- PBI-01: praias da Grande Vitória
 CREATE TABLE praia (
@@ -28,6 +28,35 @@ CREATE TABLE boletim_balneabilidade (
 
 CREATE INDEX idx_boletim_praia_data ON boletim_balneabilidade (praia_id, data_boletim DESC);
 
+-- PBI-11: organizadores (instrutores, organizadores de eventos, ONGs)
+CREATE TABLE organizador (
+    id          SERIAL PRIMARY KEY,
+    nome        VARCHAR(120) NOT NULL,
+    email       VARCHAR(254) NOT NULL CHECK (email = LOWER(email)),
+    telefone    VARCHAR(40),
+    senha_hash  TEXT NOT NULL,              -- scrypt$<salt>$<hash>
+    criado_em   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (email)
+);
+
+-- Sessões de login: o cliente guarda o token; o banco só o hash SHA-256.
+CREATE TABLE sessao (
+    token_hash      CHAR(64) PRIMARY KEY,
+    organizador_id  INTEGER NOT NULL REFERENCES organizador (id) ON DELETE CASCADE,
+    criado_em       TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expira_em       TIMESTAMPTZ NOT NULL
+);
+
+CREATE INDEX idx_sessao_organizador ON sessao (organizador_id);
+
+-- Recuperação de senha: link de uso único com validade curta.
+CREATE TABLE recuperacao_senha (
+    token_hash      CHAR(64) PRIMARY KEY,
+    organizador_id  INTEGER NOT NULL REFERENCES organizador (id) ON DELETE CASCADE,
+    expira_em       TIMESTAMPTZ NOT NULL,
+    usado_em        TIMESTAMPTZ
+);
+
 -- PBI-03, PBI-04 e PBI-05: aulas, eventos esportivos e ações comunitárias
 CREATE TYPE tipo_atividade AS ENUM ('AULA', 'EVENTO', 'ACAO_COMUNITARIA');
 CREATE TYPE status_atividade AS ENUM ('ATIVO', 'ADIADO', 'CANCELADO');
@@ -56,9 +85,8 @@ CREATE TABLE atividade (
     recomendacoes       TEXT[] NOT NULL DEFAULT '{}',
     -- PBI-06: publicação imediata ou sob aprovação (só publicadas aparecem nas consultas)
     publicada           BOOLEAN NOT NULL DEFAULT TRUE,
-    -- PBI-06: hash SHA-256 do código de edição entregue a quem cadastrou
-    -- (controle provisório até a autenticação do PBI-11)
-    token_edicao_hash   CHAR(64),
+    -- PBI-11: organizador dono da publicação (só ele pode editá-la)
+    organizador_id      INTEGER REFERENCES organizador (id) ON DELETE SET NULL,
     criado_em           TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     atualizado_em       TIMESTAMPTZ,
 
@@ -79,6 +107,7 @@ CREATE TABLE atividade (
 
 CREATE INDEX idx_atividade_tipo ON atividade (tipo);
 CREATE INDEX idx_atividade_praia ON atividade (praia_id);
+CREATE INDEX idx_atividade_organizador ON atividade (organizador_id);
 
 -- Registros de interesse/inscrição. O formulário é escopo do PBI-10;
 -- nesta sprint a tabela alimenta o contador de voluntários do PBI-05.
